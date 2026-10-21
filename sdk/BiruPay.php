@@ -21,7 +21,8 @@
  * ]);
  */
 
-class BiruPay {
+if (!class_exists('BiruPay')) {
+    class BiruPay {
     private string $apiKey;
     private string $baseUrl;
     private int $timeout;
@@ -139,4 +140,6 @@ class BiruPay {
         ];
     }
 }
+}
+
 

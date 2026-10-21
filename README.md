@@ -177,3 +177,71 @@ $response = json_decode(curl_exec($ch), true);
 // Redirect pelanggan ke: $response['data']['payment_url']
 ```
 
+---
+
+## Instalasi SDK via Composer (Packagist)
+
+Anda dapat menginstal BiruPay PHP SDK langsung ke proyek PHP / Laravel / CodeIgniter / WordPress Anda melalui Composer:
+
+```bash
+composer require biru/payhub
+```
+
+### Quickstart PHP SDK
+
+```php
+require_once 'vendor/autoload.php';
+
+use BiruPay\Client;
+use BiruPay\Exception\BiruPayException;
+
+$client = new Client('YOUR_APP_API_KEY');
+
+try {
+    $invoice = $client->createPayment([
+        'order_id'       => 'INV-' . time(),
+        'amount'         => 100000,
+        'customer_name'  => 'Pelanggan Biru',
+        'customer_email' => 'user@example.com',
+        'customer_phone' => '081234567890',
+        'item_name'      => 'Pembelian Produk'
+    ]);
+
+    // Redirect pelanggan ke URL checkout Biru PayHub:
+    header('Location: ' . $invoice['payment_url']);
+    exit;
+} catch (BiruPayException $e) {
+    echo 'Gagal membuat invoice: ' . $e->getMessage();
+}
+```
+
+### Drop-in JavaScript SDK (Frontend)
+
+Tambahkan script SDK di tag `<head>` HTML:
+
+```html
+<script src="https://biru.co.id/pembayaran/birupay.js"></script>
+```
+
+Lalu panggil popup:
+
+```javascript
+BiruPay.pay({
+    apiKey: 'YOUR_APP_API_KEY',
+    orderId: 'INV-12345',
+    amount: 100000,
+    customerName: 'Budi',
+    customerEmail: 'budi@example.com',
+    onSuccess: function(result) {
+        alert('Pembayaran Berhasil!');
+    },
+    onPending: function(result) {
+        alert('Menunggu Pembayaran...');
+    },
+    onError: function(err) {
+        alert('Pembayaran Gagal: ' + err.message);
+    }
+});
+```
+
+

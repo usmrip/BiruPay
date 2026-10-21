@@ -1,0 +1,39 @@
+{
+  "packages": {
+    "biru/payhub": {
+      "1.0.0": {
+        "name": "biru/payhub",
+        "version": "1.0.0",
+        "version_normalized": "1.0.0.0",
+        "description": "Official PHP SDK for Biru PayHub Centralized Multi-Platform Payment Gateway",
+        "homepage": "https://biru.co.id/pembayaran",
+        "license": "MIT",
+        "type": "library",
+        "authors": [
+          {
+            "name": "Biru Indonesia Creative",
+            "email": "dev@biru.co.id",
+            "homepage": "https://biru.co.id"
+          }
+        ],
+        "require": {
+          "php": ">=7.4",
+          "ext-curl": "*",
+          "ext-json": "*"
+        },
+        "autoload": {
+          "psr-4": {
+            "BiruPay\\": "src/"
+          }
+        },
+        "dist": {
+          "type": "zip",
+          "url": "https://biru.co.id/pembayaran/composer/biru-payhub-v1.0.0.zip",
+          "reference": "v1.0.0",
+          "shasum": "cb38cd1b205e85ce8d96e143af2a94389ac2debe"
+        }
+      }
+    }
+  }
+}
+

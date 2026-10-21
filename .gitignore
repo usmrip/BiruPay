@@ -1,0 +1,15 @@
+# Environment secrets
+.env
+
+# Logs and runtime caches
+storage/logs/*.log
+*.log
+
+# IDE & Editor files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Dependencies (if any)
+vendor/

@@ -1,0 +1,26 @@
+{
+    "name": "biru/payhub",
+    "description": "Official PHP SDK for Biru PayHub Centralized Multi-Platform Payment Gateway (Midtrans, Duitku, DOKU)",
+    "keywords": ["payment", "payment-gateway", "midtrans", "duitku", "doku", "birupay", "biru", "qris", "virtual-account"],
+    "homepage": "https://biru.co.id/pembayaran",
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Biru Indonesia Creative",
+            "email": "dev@biru.co.id",
+            "homepage": "https://biru.co.id"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "ext-curl": "*",
+        "ext-json": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "BiruPay\\": "src/"
+        }
+    },
+    "minimum-stability": "stable"
+}

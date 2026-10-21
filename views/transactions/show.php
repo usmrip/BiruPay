@@ -64,11 +64,11 @@ use App\Core\View;
                             <?php endif; ?>
                             <tr>
                                 <th class="bg-light text-secondary">Waktu Pembuatan</th>
-                                <td><?= date('d M Y, H:i:s', strtotime($trx['created_at'])) ?> WIB</td>
+                                <td><?= View::formatDateTime($trx['created_at'], $app['timezone'] ?? 'UTC') ?></td>
                             </tr>
                             <tr>
                                 <th class="bg-light text-secondary">Waktu Lunas (Settled)</th>
-                                <td><?= !empty($trx['paid_at']) ? date('d M Y, H:i:s', strtotime($trx['paid_at'])) . ' WIB' : '-' ?></td>
+                                <td><?= !empty($trx['paid_at']) ? View::formatDateTime($trx['paid_at'], $app['timezone'] ?? 'UTC') : '-' ?></td>
                             </tr>
                         </tbody>
                     </table>

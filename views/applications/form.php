@@ -65,6 +65,21 @@ $action = $isEdit ? View::url('applications/' . $application['id']) : View::url(
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label small fw-semibold">Zona Waktu Platform (Timezone)</label>
+                        <select name="timezone" class="form-select">
+                            <?php 
+                            $currentTimezone = $application['timezone'] ?? 'UTC';
+                            foreach (View::getTimezones() as $tzKey => $tzLabel): 
+                            ?>
+                                <option value="<?= $tzKey ?>" <?= $currentTimezone === $tzKey ? 'selected' : '' ?>>
+                                    <?= $tzLabel ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <small class="text-muted">Digunakan sebagai acuan tampilan waktu transaksi dan pelunasan pada invoice platform ini (Default: UTC)</small>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label small fw-semibold">Webhook Callback URL Aplikasi</label>
                         <input type="url" name="webhook_url" class="form-control font-monospace" 
                                value="<?= View::escape($application['webhook_url'] ?? '') ?>" 

@@ -56,6 +56,10 @@ class ApplicationController extends Controller {
         $webhook   = trim($request->post('webhook_url', ''));
         $return    = trim($request->post('return_url', ''));
         $desc      = trim($request->post('description', ''));
+        $timezone  = trim($request->post('timezone', 'UTC'));
+        if (!in_array($timezone, \DateTimeZone::listIdentifiers())) {
+            $timezone = 'UTC';
+        }
         $defaultGw = trim($request->post('default_gateway', 'default'));
         if (!in_array($defaultGw, ['default', 'midtrans', 'duitku', 'doku'])) {
             $defaultGw = 'default';
@@ -80,6 +84,7 @@ class ApplicationController extends Controller {
             'webhook_url'     => $webhook,
             'return_url'      => $return,
             'default_gateway' => $defaultGw,
+            'timezone'        => $timezone,
             'description'     => $desc,
             'status'          => 'active'
         ]);
@@ -122,6 +127,10 @@ class ApplicationController extends Controller {
         $webhook   = trim($request->post('webhook_url', ''));
         $return    = trim($request->post('return_url', ''));
         $desc      = trim($request->post('description', ''));
+        $timezone  = trim($request->post('timezone', 'UTC'));
+        if (!in_array($timezone, \DateTimeZone::listIdentifiers())) {
+            $timezone = 'UTC';
+        }
         $status    = $request->post('status') === 'inactive' ? 'inactive' : 'active';
         $defaultGw = trim($request->post('default_gateway', 'default'));
         if (!in_array($defaultGw, ['default', 'midtrans', 'duitku', 'doku'])) {
@@ -139,6 +148,7 @@ class ApplicationController extends Controller {
             'webhook_url'     => $webhook,
             'return_url'      => $return,
             'default_gateway' => $defaultGw,
+            'timezone'        => $timezone,
             'description'     => $desc,
             'status'          => $status
         ]);

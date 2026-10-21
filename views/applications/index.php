@@ -55,6 +55,7 @@ use App\Core\View;
                             <td>
                                 <div class="fw-bold text-dark fs-6"><?= View::escape($app['app_name']) ?></div>
                                 <span class="badge bg-secondary-subtle text-secondary font-monospace"><?= View::escape($app['app_code']) ?></span>
+                                <span class="badge bg-light text-dark border ms-1"><i class="bi bi-clock me-1"></i><?= View::escape($app['timezone'] ?? 'UTC') ?></span>
                             </td>
                             <td>
                                 <div class="dropdown">

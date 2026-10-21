@@ -54,5 +54,44 @@ class View {
     public static function formatRupiah($amount): string {
         return 'Rp ' . number_format((float)$amount, 0, ',', '.');
     }
+
+    /**
+     * Format timestamp menurut zona waktu platform/aplikasi (default UTC)
+     */
+    public static function formatDateTime(?string $dateTimeStr, ?string $timezone = 'UTC', string $format = 'd M Y, H:i T'): string {
+        if (empty($dateTimeStr)) {
+            return '-';
+        }
+
+        try {
+            $dt = new \DateTime($dateTimeStr, new \DateTimeZone('UTC'));
+            $tz = !empty($timezone) ? trim($timezone) : 'UTC';
+            if (in_array($tz, \DateTimeZone::listIdentifiers())) {
+                $dt->setTimezone(new \DateTimeZone($tz));
+            }
+            return $dt->format($format);
+        } catch (\Throwable $e) {
+            return $dateTimeStr;
+        }
+    }
+
+    /**
+     * Daftar pilihan zona waktu umum
+     */
+    public static function getTimezones(): array {
+        return [
+            'UTC' => 'UTC (Coordinated Universal Time)',
+            'Asia/Jakarta' => 'Asia/Jakarta (WIB, UTC+7)',
+            'Asia/Makassar' => 'Asia/Makassar (WITA, UTC+8)',
+            'Asia/Jayapura' => 'Asia/Jayapura (WIT, UTC+9)',
+            'Asia/Singapore' => 'Asia/Singapore (SGT, UTC+8)',
+            'Asia/Kuala_Lumpur' => 'Asia/Kuala Lumpur (MYT, UTC+8)',
+            'Asia/Bangkok' => 'Asia/Bangkok (ICT, UTC+7)',
+            'Asia/Tokyo' => 'Asia/Tokyo (JST, UTC+9)',
+            'Europe/London' => 'Europe/London (GMT/BST)',
+            'America/New_York' => 'America/New York (EST/EDT)',
+            'America/Los_Angeles' => 'America/Los Angeles (PST/PDT)',
+        ];
+    }
 }
 

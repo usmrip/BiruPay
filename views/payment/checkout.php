@@ -1,233 +1,212 @@
 <?php
 use App\Core\View;
 
-$midtransConfig = $gatewayConfigs['midtrans'] ?? null;
-$duitkuConfig   = $gatewayConfigs['duitku'] ?? null;
-$dokuConfig     = $gatewayConfigs['doku'] ?? null;
-$activeGatewayCode = $trx['gateway'] ?? 'midtrans';
+$activeGateway = $trx['gateway'] ?? 'midtrans';
+$gwConfig = $gatewayConfigs[$activeGateway] ?? null;
+$appTimezone = $app['timezone'] ?? 'UTC';
+$isSuccess = ($trx['status'] === 'success');
 ?>
 
-<!-- Include Payment Gateway Popup Scripts -->
-<?php if ($midtransConfig): ?>
-    <script src="<?= $midtransConfig['script_url'] ?>" data-client-key="<?= $midtransConfig['client_key'] ?>"></script>
+<!-- Load Payment Script in Background -->
+<?php if ($activeGateway === 'midtrans' && !empty($gwConfig['script_url'])): ?>
+    <script src="<?= $gwConfig['script_url'] ?>" data-client-key="<?= $gwConfig['client_key'] ?? '' ?>"></script>
+<?php elseif ($activeGateway === 'duitku' && !empty($gwConfig['script_url'])): ?>
+    <script src="<?= $gwConfig['script_url'] ?>"></script>
 <?php endif; ?>
 
-<?php if ($duitkuConfig): ?>
-    <script src="<?= $duitkuConfig['script_url'] ?>"></script>
-<?php endif; ?>
-
-<div class="checkout-card">
+<div class="apple-card">
     <!-- Header -->
-    <div class="p-4 text-center text-white" style="background: linear-gradient(135deg, #0052cc, #0040a8);">
-        <div class="brand-logo mx-auto mb-2" style="width: 44px; height: 44px; background: rgba(255, 255, 255, 0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 1.3rem;">B</div>
-        <h5 class="fw-bold mb-1"><?= View::escape($app['app_name'] ?? 'Biru Indonesia Creative') ?></h5>
-        <p class="small mb-0 opacity-75">Sistem Pembayaran Terpadu</p>
-    </div>
-
-    <!-- Amount Display -->
-    <div class="p-4 bg-light text-center border-bottom">
-        <span class="text-secondary small fw-semibold text-uppercase">Total Tagihan</span>
-        <div class="display-6 fw-bold text-dark mt-1"><?= View::formatRupiah($trx['amount']) ?></div>
-        <div class="small text-muted mt-1 font-monospace">Order #<?= View::escape($trx['order_id']) ?> &bull; Ref: <?= View::escape($trx['trx_reference']) ?></div>
-    </div>
-
-    <!-- Checkout Body -->
-    <div class="p-4">
-        <!-- Customer summary -->
-        <div class="mb-4">
-            <h6 class="fw-bold text-dark mb-2 small text-uppercase" style="letter-spacing: 0.05em;">Informasi Pelanggan</h6>
-            <div class="p-3 bg-light rounded-3 small">
-                <div class="d-flex justify-content-between mb-1">
-                    <span class="text-muted">Nama:</span>
-                    <strong class="text-dark"><?= View::escape($trx['customer_name'] ?? 'Pelanggan') ?></strong>
-                </div>
-                <div class="d-flex justify-content-between mb-1">
-                    <span class="text-muted">Email:</span>
-                    <strong class="text-dark"><?= View::escape($trx['customer_email'] ?? '-') ?></strong>
-                </div>
-                <?php if (!empty($trx['customer_phone'])): ?>
-                    <div class="d-flex justify-content-between">
-                        <span class="text-muted">No. HP:</span>
-                        <strong class="text-dark"><?= View::escape($trx['customer_phone']) ?></strong>
-                    </div>
-                <?php endif; ?>
-            </div>
+    <div style="padding: 32px 24px 20px; text-align: center;">
+        <div style="width: 44px; height: 44px; margin: 0 auto 12px; background: #000000; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: 700; font-size: 18px;">
+            <?= strtoupper(substr($app['app_name'] ?? 'B', 0, 1)) ?>
+        </div>
+        <div style="font-size: 15px; font-weight: 600; color: #1d1d1f; letter-spacing: -0.01em;">
+            <?= View::escape($app['app_name'] ?? 'Biru Pay') ?>
+        </div>
+        <div style="font-size: 12px; color: #86868b; margin-top: 2px;">
+            Order #<?= View::escape($trx['order_id']) ?>
         </div>
 
-        <?php if ($trx['status'] === 'success'): ?>
-            <div class="alert alert-success text-center py-4 mb-0">
-                <i class="bi bi-check-circle-fill display-4 text-success d-block mb-2"></i>
-                <h5 class="fw-bold text-success mb-1">Pembayaran Telah Selesai</h5>
-                <p class="small text-muted mb-3">Transaksi ini sudah lunas.</p>
-                <a href="<?= View::url('payment/return?ref=' . urlencode($trx['trx_reference'])) ?>" class="btn btn-success">
-                    Lihat Bukti Pembayaran
-                </a>
+        <!-- Total Tagihan -->
+        <div style="margin-top: 24px;">
+            <div style="font-size: 12px; font-weight: 500; color: #86868b; text-transform: uppercase; letter-spacing: 0.04em;">
+                Total Tagihan
             </div>
-        <?php else: ?>
-            <!-- Gateway Selection -->
-            <div class="mb-4">
-                <h6 class="fw-bold text-dark mb-2 small text-uppercase" style="letter-spacing: 0.05em;">Pilih Metode / Saluran Pembayaran</h6>
-                
-                <?php if (empty($gateways)): ?>
-                    <div class="alert alert-warning small">
-                        <i class="bi bi-exclamation-triangle me-1"></i> Belum ada payment gateway yang aktif. Hubungi administrator.
-                    </div>
-                <?php else: ?>
-                    <div class="gateway-list">
-                        <?php foreach ($gateways as $index => $gw): ?>
-                            <?php $isSelected = ($gw['gateway_code'] === $activeGatewayCode) || ($index === 0 && empty($activeGatewayCode)); ?>
-                            <div class="gateway-selector-item <?= $isSelected ? 'selected' : '' ?>" data-gateway="<?= $gw['gateway_code'] ?>">
-                                <div class="d-flex align-items-center gap-3">
-                                    <input class="form-check-input mt-0" type="radio" name="gateway_choice" value="<?= $gw['gateway_code'] ?>" <?= $isSelected ? 'checked' : '' ?>>
-                                    <div>
-                                        <div class="fw-bold text-dark"><?= View::escape($gw['gateway_name']) ?></div>
-                                        <small class="text-muted">
-                                            <?php if ($gw['gateway_code'] === 'midtrans'): ?>
-                                                Popup Snap (GoPay, QRIS, Virtual Account, Kartu Kredit)
-                                            <?php elseif ($gw['gateway_code'] === 'duitku'): ?>
-                                                Duitku Pop (OVO, DANA, ShopeePay, Virtual Account)
-                                            <?php else: ?>
-                                                DOKU Checkout
-                                            <?php endif; ?>
-                                        </small>
-                                    </div>
-                                </div>
-                                <span class="badge bg-light text-secondary border">Metode Popup</span>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
+            <div style="font-size: 36px; font-weight: 700; color: #1d1d1f; letter-spacing: -0.03em; margin-top: 4px;">
+                <?= View::formatRupiah($trx['amount']) ?>
+            </div>
+        </div>
+    </div>
+
+    <!-- Divider -->
+    <div style="height: 1px; background: rgba(0,0,0,0.06); margin: 0 24px;"></div>
+
+    <!-- Body Content -->
+    <div style="padding: 24px;">
+        <?php if ($isSuccess): ?>
+            <!-- Status Sudah Lunas -->
+            <div style="text-align: center; padding: 12px 0 20px;">
+                <div style="width: 52px; height: 52px; margin: 0 auto 14px; background: rgba(52, 199, 89, 0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #34c759; font-size: 26px;">
+                    <i class="bi bi-check2"></i>
+                </div>
+                <div style="font-size: 17px; font-weight: 600; color: #1d1d1f;">
+                    Pembayaran Telah Selesai
+                </div>
+                <div style="font-size: 13px; color: #86868b; margin-top: 4px;">
+                    Transaksi ini sudah diverifikasi lunas.
+                </div>
             </div>
 
-            <!-- Submit Pay Button -->
-            <button type="button" id="btn-pay-now" class="btn btn-primary w-100 py-3 fw-bold rounded-3 shadow-sm fs-5" style="background-color: #0052cc; border-color: #0052cc;">
-                <i class="bi bi-shield-lock-fill me-1"></i> Bayar Sekarang
+            <a href="<?= View::url('payment/return?ref=' . urlencode($trx['trx_reference'])) ?>" class="btn-apple">
+                Lihat Bukti Pembayaran
+            </a>
+        <?php else: ?>
+            <!-- Rincian Transaksi -->
+            <table class="table-summary" style="margin-bottom: 24px;">
+                <tbody>
+                    <tr>
+                        <td class="label">Pelanggan</td>
+                        <td class="value"><?= View::escape($trx['customer_name'] ?? 'Pelanggan') ?></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Email</td>
+                        <td class="value"><?= View::escape($trx['customer_email'] ?? '-') ?></td>
+                    </tr>
+                    <?php if (!empty($trx['customer_phone'])): ?>
+                    <tr>
+                        <td class="label">No. Telepon</td>
+                        <td class="value"><?= View::escape($trx['customer_phone']) ?></td>
+                    </tr>
+                    <?php endif; ?>
+                    <tr>
+                        <td class="label">Waktu Dibuat</td>
+                        <td class="value"><?= View::formatDateTime($trx['created_at'], $appTimezone) ?></td>
+                    </tr>
+                    <tr>
+                        <td class="label">No. Referensi</td>
+                        <td class="value" style="font-family: monospace; font-size: 12px;"><?= View::escape($trx['trx_reference']) ?></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Metode Pembayaran yang Didukung (Muted Badges) -->
+            <div style="margin-bottom: 24px; text-align: center;">
+                <div style="font-size: 11px; font-weight: 500; color: #86868b; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 10px;">
+                    Metode Pembayaran Tersedia
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;">
+                    <span class="pill-badge">QRIS</span>
+                    <span class="pill-badge">BCA Virtual Account</span>
+                    <span class="pill-badge">Mandiri VA</span>
+                    <span class="pill-badge">BRI / BNI VA</span>
+                    <span class="pill-badge">GoPay / ShopeePay</span>
+                    <span class="pill-badge">Kartu Kredit</span>
+                </div>
+            </div>
+
+            <!-- Tombol Bayar Apple Style -->
+            <button id="btn-pay" class="btn-apple" type="button">
+                <span>Bayar Sekarang</span>
             </button>
 
-            <div class="text-center mt-3">
-                <small class="text-muted d-flex align-items-center justify-content-center gap-1">
-                    <i class="bi bi-shield-check text-success"></i> Transaksi Aman & Terenkripsi oleh Biru PayHub
-                </small>
+            <!-- Loading State Hidden -->
+            <div id="pay-loading" style="display: none; text-align: center; padding: 14px 0; font-size: 14px; color: #86868b;">
+                <span class="spinner-border spinner-border-sm me-2" role="status"></span> Menghubungkan sistem pembayaran...
             </div>
         <?php endif; ?>
+
+        <!-- Footer Security -->
+        <div style="margin-top: 24px; text-align: center; font-size: 11px; color: #86868b; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <i class="bi bi-shield-lock-fill" style="color: #34c759;"></i>
+            <span>Diverifikasi aman & dienkripsi dengan standar 256-bit</span>
+        </div>
     </div>
 </div>
 
-<?php
-$extraScripts = "
+<?php if (!$isSuccess): ?>
 <script>
-$(document).ready(function() {
-    let currentGateway = '" . $activeGatewayCode . "';
-    let snapToken = '" . ($trx['snap_token'] ?? '') . "';
-    let duitkuReference = '" . ($trx['gateway_reference'] ?? '') . "';
-    const trxReference = '" . $trx['trx_reference'] . "';
-    const finishUrl = '" . View::url('payment/return?ref=' . urlencode($trx['trx_reference'])) . "';
+document.addEventListener('DOMContentLoaded', function () {
+    const btnPay = document.getElementById('btn-pay');
+    const loadingState = document.getElementById('pay-loading');
+    const trxRef = <?= json_encode($trx['trx_reference']) ?>;
+    const gateway = <?= json_encode($activeGateway) ?>;
+    let snapToken = <?= json_encode($trx['snap_token'] ?? '') ?>;
+    let gatewayRef = <?= json_encode($trx['gateway_reference'] ?? '') ?>;
+    const returnUrl = <?= json_encode(View::url('payment/return?ref=' . urlencode($trx['trx_reference']))) ?>;
 
-    // Click handler for gateway selector item
-    $('.gateway-selector-item').on('click', function() {
-        $('.gateway-selector-item').removeClass('selected');
-        $(this).addClass('selected');
-        const radio = $(this).find('input[type=radio]');
-        radio.prop('checked', true);
-        currentGateway = radio.val();
-    });
+    function openGatewayPopup() {
+        if (gateway === 'midtrans') {
+            if (typeof window.snap !== 'undefined' && snapToken) {
+                window.snap.pay(snapToken, {
+                    onSuccess: function () { window.location.href = returnUrl; },
+                    onPending: function () { window.location.href = returnUrl; },
+                    onError: function () { alert('Pembayaran gagal diproses.'); resetBtn(); },
+                    onClose: function () { resetBtn(); }
+                });
+                return;
+            }
+        } else if (gateway === 'duitku') {
+            if (typeof checkout !== 'undefined' && gatewayRef) {
+                checkout.process(gatewayRef, {
+                    successEvent: function () { window.location.href = returnUrl; },
+                    pendingEvent: function () { window.location.href = returnUrl; },
+                    errorEvent: function () { alert('Pembayaran gagal diproses.'); resetBtn(); },
+                    closeEvent: function () { resetBtn(); }
+                });
+                return;
+            }
+        }
 
-    $('input[name=gateway_choice]').on('change', function() {
-        currentGateway = $(this).val();
-        $('.gateway-selector-item').removeClass('selected');
-        $(this).closest('.gateway-selector-item').addClass('selected');
-    });
-
-    $('#btn-pay-now').on('click', function() {
-        const btn = $(this);
-        btn.prop('disabled', true).html('<span class=\"spinner-border spinner-border-sm me-2\"></span>Memproses...');
-
-        // Step 1: Initiate or fetch payment token for selected gateway
+        // Fallback: fetch/initiate token dynamically via AJAX
         $.ajax({
-            url: '" . View::url('payment/initiate') . "',
+            url: '<?= View::url('payment/initiate') ?>',
             type: 'POST',
-            data: {
-                ref: trxReference,
-                gateway: currentGateway
-            },
             dataType: 'json',
-            success: function(res) {
-                btn.prop('disabled', false).html('<i class=\"bi bi-shield-lock-fill me-1\"></i> Bayar Sekarang');
-
-                if (!res.success) {
-                    alert('Gagal memulai pembayaran: ' + (res.message || 'Kesalahan sistem'));
-                    return;
-                }
-
-                if (currentGateway === 'midtrans') {
-                    const token = res.snap_token || snapToken;
-                    if (window.snap && token) {
-                        window.snap.pay(token, {
-                            onSuccess: function(result) {
-                                window.location.href = finishUrl;
-                            },
-                            onPending: function(result) {
-                                window.location.href = finishUrl;
-                            },
-                            onError: function(result) {
-                                alert('Pembayaran gagal atau dibatalkan.');
-                            },
-                            onClose: function() {
-                                console.log('Snap popup closed without payment.');
-                            }
+            data: { ref: trxRef, gateway: gateway },
+            success: function (res) {
+                if (res.success) {
+                    if (gateway === 'midtrans' && res.snap_token) {
+                        snapToken = res.snap_token;
+                        window.snap.pay(snapToken, {
+                            onSuccess: function () { window.location.href = returnUrl; },
+                            onPending: function () { window.location.href = returnUrl; },
+                            onError: function () { alert('Pembayaran gagal.'); resetBtn(); },
+                            onClose: function () { resetBtn(); }
                         });
-                    } else if (res.payment_url) {
-                        window.location.href = res.payment_url;
+                    } else if (gateway === 'duitku' && res.reference) {
+                        gatewayRef = res.reference;
+                        checkout.process(gatewayRef, {
+                            successEvent: function () { window.location.href = returnUrl; },
+                            pendingEvent: function () { window.location.href = returnUrl; },
+                            errorEvent: function () { alert('Pembayaran gagal.'); resetBtn(); },
+                            closeEvent: function () { resetBtn(); }
+                        });
+                    } else {
+                        alert(res.message || 'Gagal memuat popup pembayaran.');
+                        resetBtn();
                     }
-                } else if (currentGateway === 'duitku') {
-                    const reference = res.reference || duitkuReference;
-                    const isSandbox = (res.mode === 'sandbox') || (res.payment_url && res.payment_url.includes('app-sandbox'));
-
-                    // On Duitku Sandbox, X-Frame-Options: SAMEORIGIN blocks iframe embeds, so redirect is required
-                    if (isSandbox && res.payment_url) {
-                        window.location.href = res.payment_url;
-                    } else if (window.checkout && reference) {
-                        try {
-                            checkout.process(reference, {
-                                defaultLanguage: 'id',
-                                successEvent: function(result) {
-                                    window.location.href = finishUrl;
-                                },
-                                pendingEvent: function(result) {
-                                    window.location.href = finishUrl;
-                                },
-                                errorEvent: function(result) {
-                                    if (res.payment_url) {
-                                        window.location.href = res.payment_url;
-                                    }
-                                },
-                                closeEvent: function() {
-                                    console.log('Duitku popup closed.');
-                                }
-                            });
-                        } catch (err) {
-                            console.warn('Checkout process error, fallback to URL:', err);
-                            if (res.payment_url) {
-                                window.location.href = res.payment_url;
-                            }
-                        }
-                    } else if (res.payment_url) {
-                        window.location.href = res.payment_url;
-                    }
-                } else if (currentGateway === 'doku') {
-                    if (res.payment_url) {
-                        window.location.href = res.payment_url;
-                    }
+                } else {
+                    alert(res.message || 'Gagal memproses tagihan.');
+                    resetBtn();
                 }
             },
-            error: function(xhr) {
-                btn.prop('disabled', false).html('<i class=\"bi bi-shield-lock-fill me-1\"></i> Bayar Sekarang');
-                alert('Terjadi kesalahan jaringan saat memproses pembayaran.');
+            error: function () {
+                alert('Koneksi terputus. Silakan coba kembali.');
+                resetBtn();
             }
         });
+    }
+
+    function resetBtn() {
+        btnPay.style.display = 'flex';
+        loadingState.style.display = 'none';
+    }
+
+    btnPay.addEventListener('click', function () {
+        btnPay.style.display = 'none';
+        loadingState.style.display = 'block';
+        openGatewayPopup();
     });
 });
 </script>
-";
-?>
-
+<?php endif; ?>

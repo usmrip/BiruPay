@@ -21,3 +21,4 @@ class AlreadyPaidException extends BiruPayException {
         return $this->response['data']['success_url'] ?? null;
     }
 }
+

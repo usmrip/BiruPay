@@ -2,6 +2,10 @@
 /**
  * PSR-4 Autoloader for Biru Payment Hub
  */
+
+// Set default timezone to UTC globally
+date_default_timezone_set('UTC');
+
 spl_autoload_register(function ($class) {
     $prefix = 'App\\';
     $baseDir = __DIR__ . '/';

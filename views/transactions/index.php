@@ -132,7 +132,7 @@ use App\Core\View;
                                 <?php endif; ?>
                             </td>
                             <td class="small text-muted">
-                                <?= date('d/m/Y H:i', strtotime($trx['created_at'])) ?>
+                                <?= View::formatDateTime($trx['created_at'], $trx['timezone'] ?? 'UTC', 'd/m/Y H:i T') ?>
                             </td>
                             <td class="text-end">
                                 <a href="<?= View::url('transactions/' . $trx['id']) ?>" class="btn btn-sm btn-light border" title="Lihat Detail Transaksi">

@@ -8,7 +8,7 @@ return [
     'app_name' => 'Biru PayHub',
     'app_env' => 'production',
     'app_debug' => false,
-    'timezone' => 'Asia/Jakarta',
+    'timezone' => 'UTC',
     
     // Base URL of the payment hub (without trailing slash)
     'base_url' => (function() {

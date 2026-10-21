@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS `applications` (
   `webhook_url` VARCHAR(255) DEFAULT NULL,
   `return_url` VARCHAR(255) DEFAULT NULL,
   `default_gateway` VARCHAR(50) DEFAULT 'default',
+  `timezone` VARCHAR(50) NOT NULL DEFAULT 'UTC',
   `description` TEXT DEFAULT NULL,
   `status` ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -18,7 +18,7 @@ class Transaction extends Model {
         $pdo = Database::getConnection();
         if (!$pdo) return null;
 
-        $sql = "SELECT t.*, a.app_name, a.app_code, a.webhook_url, a.return_url 
+        $sql = "SELECT t.*, a.app_name, a.app_code, a.webhook_url, a.return_url, a.timezone 
                 FROM `transactions` t
                 LEFT JOIN `applications` a ON t.app_id = a.id
                 WHERE t.id = ? LIMIT 1";
@@ -32,7 +32,7 @@ class Transaction extends Model {
         $pdo = Database::getConnection();
         if (!$pdo) return null;
 
-        $sql = "SELECT t.*, a.app_name, a.app_code, a.webhook_url, a.return_url 
+        $sql = "SELECT t.*, a.app_name, a.app_code, a.webhook_url, a.return_url, a.timezone 
                 FROM `transactions` t
                 LEFT JOIN `applications` a ON t.app_id = a.id
                 WHERE t.trx_reference = ? LIMIT 1";
@@ -57,7 +57,7 @@ class Transaction extends Model {
         $pdo = Database::getConnection();
         if (!$pdo) return null;
 
-        $sql = "SELECT t.*, a.app_name, a.app_code, a.webhook_url, a.return_url 
+        $sql = "SELECT t.*, a.app_name, a.app_code, a.webhook_url, a.return_url, a.timezone 
                 FROM `transactions` t
                 LEFT JOIN `applications` a ON t.app_id = a.id
                 WHERE t.order_id = ? ORDER BY t.id DESC LIMIT 1";
@@ -109,7 +109,7 @@ class Transaction extends Model {
         }
 
         $whereSql = !empty($conditions) ? "WHERE " . implode(" AND ", $conditions) : "";
-        $sql = "SELECT t.*, a.app_name, a.app_code 
+        $sql = "SELECT t.*, a.app_name, a.app_code, a.timezone 
                 FROM `transactions` t
                 LEFT JOIN `applications` a ON t.app_id = a.id
                 {$whereSql}

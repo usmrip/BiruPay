@@ -225,6 +225,46 @@ $payment = $pay->createPayment([
 header('Location: ' . $payment['payment_url']);
 exit;
 ?&gt;</pre>
+
+                            <h6 class="small fw-bold text-dark mt-3 mb-1">Penanganan Order yang Sudah Lunas / Error (Best Practice):</h6>
+                            <pre class="code-box mb-0">&lt;?php
+require_once 'vendor/autoload.php';
+
+use BiruPay\Client;
+use BiruPay\Exception\AlreadyPaidException;
+use BiruPay\Exception\BiruPayException;
+
+$pay = new Client('YOUR_API_KEY');
+$orderId = 'INV-12345';
+
+try {
+    // 1. Cek Cepat: apakah pesanan sudah lunas
+    if ($pay->isPaid($orderId)) {
+        header('Location: /sukses.php?order_id=' . $orderId);
+        exit;
+    }
+
+    // 2. Buat invoice
+    $payment = $pay->createPayment([
+        'order_id'       => $orderId,
+        'amount'         => 50000,
+        'customer_name'  => 'Budi Santoso',
+        'customer_email' => 'budi@example.com'
+    ]);
+
+    header('Location: ' . $payment['payment_url']);
+    exit;
+
+} catch (AlreadyPaidException $e) {
+    // Pembayaran sudah pernah lunas sebelumnya
+    $info = $e->getResponse()['data'];
+    header('Location: /sukses.php?order_id=' . $orderId . '&paid_at=' . urlencode($info['paid_at']));
+    exit;
+
+} catch (BiruPayException $e) {
+    echo "Terjadi kendala: " . $e->getMessage();
+}
+?&gt;</pre>
                         </div>
                     </div>
 

@@ -2,10 +2,12 @@
 namespace BiruPay;
 
 use BiruPay\Exception\BiruPayException;
+use BiruPay\Exception\AlreadyPaidException;
+use BiruPay\Exception\PendingPaymentException;
 
 class Client {
     public const DEFAULT_BASE_URL = 'https://biru.co.id/pembayaran';
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.0.1';
 
     private string $apiKey;
     private string $baseUrl;
@@ -23,6 +25,10 @@ class Client {
 
     /**
      * Buat invoice pembayaran baru di Biru PayHub
+     * 
+     * @throws AlreadyPaidException Jika order_id sudah pernah dibayar lunas
+     * @throws PendingPaymentException Jika order_id masih memiliki tagihan pending aktif
+     * @throws BiruPayException Jika terjadi kesalahan validasi atau jaringan
      */
     public function createPayment(array $params): array {
         if (empty($params['order_id'])) {
@@ -36,7 +42,17 @@ class Client {
         $res = $this->request('POST', $endpoint, $params);
 
         if (($res['status'] ?? '') !== 'success') {
-            throw new BiruPayException($res['message'] ?? 'Gagal membuat tagihan pembayaran.', 0, $res);
+            $code = $res['code'] ?? '';
+            $msg  = $res['message'] ?? 'Gagal membuat tagihan pembayaran.';
+            
+            if ($code === 'ALREADY_PAID' || stripos($msg, 'sudah pernah dibayar') !== false) {
+                throw new AlreadyPaidException($msg, 400, $res);
+            }
+            if ($code === 'ALREADY_PENDING') {
+                throw new PendingPaymentException($msg, 400, $res);
+            }
+
+            throw new BiruPayException($msg, 0, $res);
         }
 
         return $res['data'] ?? [];
@@ -54,6 +70,30 @@ class Client {
         }
 
         return $res['data'] ?? [];
+    }
+
+    /**
+     * Cek cepat apakah order sudah lunas (true jika status == success)
+     */
+    public function isPaid(string $orderId): bool {
+        try {
+            $status = $this->checkStatus($orderId);
+            return ($status['status'] ?? '') === 'success';
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Ambil nama status saat ini: 'success', 'pending', 'failed', 'expired', atau null jika tidak ditemukan
+     */
+    public function getPaymentStatus(string $orderId): ?string {
+        try {
+            $status = $this->checkStatus($orderId);
+            return $status['status'] ?? null;
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     /**
@@ -110,4 +150,3 @@ class Client {
         throw new BiruPayException('Respons tidak terduga dari server (HTTP ' . $httpCode . '): ' . substr($response, 0, 200), $httpCode);
     }
 }
-

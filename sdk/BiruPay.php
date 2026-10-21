@@ -50,6 +50,14 @@ if (!class_exists('BiruPay')) {
     }
 
     /**
+     * Cek cepat apakah order sudah lunas (true jika status == success)
+     */
+    public function isPaid(string $orderId): bool {
+        $res = $this->checkStatus($orderId);
+        return isset($res['data']['status']) && $res['data']['status'] === 'success';
+    }
+
+    /**
      * Verifikasi webhook notifikasi pembayaran dari Biru PayHub
      */
     public function verifyWebhook(?string $rawPayload = null, ?string $signature = null): array {

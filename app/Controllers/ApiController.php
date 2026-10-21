@@ -59,12 +59,55 @@ class ApiController extends Controller {
 
         // Check if an order already exists for this app
         $existing = Transaction::findByOrderIdAndApp($orderId, $app['id']);
-        if ($existing && $existing['status'] === 'success') {
-            $this->json([
-                'status' => 'error',
-                'message' => 'Order ID ini sudah pernah dibayar lunas.'
-            ], 400);
-            return;
+        if ($existing) {
+            // Jika status masih pending, sinkronisasi status ke payment gateway
+            if ($existing['status'] === 'pending') {
+                $existing = \App\Services\PaymentSyncService::syncTransaction($existing);
+            }
+
+            // Kasus 1: Sudah Pernah Dibayar Lunas (Success)
+            if ($existing && $existing['status'] === 'success') {
+                $successUrl = $app['return_url'] ?? View::url('payment/success?ref=' . urlencode($existing['trx_reference']));
+                $this->json([
+                    'status'  => 'error',
+                    'code'    => 'ALREADY_PAID',
+                    'message' => 'Order ID ini sudah pernah dibayar lunas.',
+                    'data'    => [
+                        'order_id'       => $existing['order_id'],
+                        'trx_reference'  => $existing['trx_reference'],
+                        'amount'         => (float)$existing['amount'],
+                        'status'         => 'success',
+                        'paid_at'        => $existing['paid_at'],
+                        'gateway'        => $existing['gateway'],
+                        'payment_method' => $existing['payment_method'],
+                        'success_url'    => $successUrl,
+                    ]
+                ], 400);
+                return;
+            }
+
+            // Kasus 2: Masih Menunggu Pembayaran (Pending)
+            if ($existing && $existing['status'] === 'pending') {
+                $paymentUrl = View::url('pay?ref=' . urlencode($existing['trx_reference']));
+                $this->json([
+                    'status'  => 'success',
+                    'code'    => 'ALREADY_PENDING',
+                    'message' => 'Tagihan untuk Order ID ini sudah ada dan sedang menunggu pembayaran.',
+                    'data'    => [
+                        'trx_reference'       => $existing['trx_reference'],
+                        'order_id'            => $existing['order_id'],
+                        'amount'              => (float)$existing['amount'],
+                        'gateway'             => $existing['gateway'],
+                        'status'              => 'pending',
+                        'snap_token'          => $existing['snap_token'],
+                        'gateway_reference'   => $existing['gateway_reference'],
+                        'payment_url'         => $paymentUrl,
+                        'is_existing'         => true,
+                        'created_at'          => $existing['created_at'],
+                    ]
+                ], 200);
+                return;
+            }
         }
 
         // Generate unique hub reference

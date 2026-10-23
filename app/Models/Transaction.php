@@ -18,7 +18,10 @@ class Transaction extends Model {
         $pdo = Database::getConnection();
         if (!$pdo) return null;
 
-        $sql = "SELECT t.*, a.app_name, a.app_code, a.webhook_url, a.return_url, a.timezone 
+        $sql = "SELECT t.*, a.app_name, a.app_code, 
+                       COALESCE(NULLIF(t.webhook_url, ''), a.webhook_url) AS webhook_url, 
+                       COALESCE(NULLIF(t.return_url, ''), a.return_url) AS return_url, 
+                       a.timezone 
                 FROM `transactions` t
                 LEFT JOIN `applications` a ON t.app_id = a.id
                 WHERE t.id = ? LIMIT 1";
@@ -32,7 +35,10 @@ class Transaction extends Model {
         $pdo = Database::getConnection();
         if (!$pdo) return null;
 
-        $sql = "SELECT t.*, a.app_name, a.app_code, a.webhook_url, a.return_url, a.timezone 
+        $sql = "SELECT t.*, a.app_name, a.app_code, 
+                       COALESCE(NULLIF(t.webhook_url, ''), a.webhook_url) AS webhook_url, 
+                       COALESCE(NULLIF(t.return_url, ''), a.return_url) AS return_url, 
+                       a.timezone 
                 FROM `transactions` t
                 LEFT JOIN `applications` a ON t.app_id = a.id
                 WHERE t.trx_reference = ? LIMIT 1";
@@ -57,7 +63,10 @@ class Transaction extends Model {
         $pdo = Database::getConnection();
         if (!$pdo) return null;
 
-        $sql = "SELECT t.*, a.app_name, a.app_code, a.webhook_url, a.return_url, a.timezone 
+        $sql = "SELECT t.*, a.app_name, a.app_code, 
+                       COALESCE(NULLIF(t.webhook_url, ''), a.webhook_url) AS webhook_url, 
+                       COALESCE(NULLIF(t.return_url, ''), a.return_url) AS return_url, 
+                       a.timezone 
                 FROM `transactions` t
                 LEFT JOIN `applications` a ON t.app_id = a.id
                 WHERE t.order_id = ? ORDER BY t.id DESC LIMIT 1";

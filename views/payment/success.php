@@ -5,6 +5,19 @@ $isSuccess = ($trx && $trx['status'] === 'success');
 $isPending = ($trx && $trx['status'] === 'pending');
 $returnUrl = $app['return_url'] ?? 'https://biru.co.id';
 $appTimezone = $app['timezone'] ?? 'UTC';
+
+$finalReturnUrl = $returnUrl;
+if (!empty($trx['order_id']) || !empty($trx['trx_reference'])) {
+    $params = [];
+    if (!empty($trx['order_id'])) {
+        $params['order_id'] = $trx['order_id'];
+    }
+    if (!empty($trx['trx_reference'])) {
+        $params['ref'] = $trx['trx_reference'];
+    }
+    $query = http_build_query($params);
+    $finalReturnUrl .= (strpos($finalReturnUrl, '?') === false ? '?' : '&') . $query;
+}
 ?>
 
 <div class="apple-card">
@@ -94,7 +107,7 @@ $appTimezone = $app['timezone'] ?? 'UTC';
         <?php endif; ?>
 
         <!-- Action Buttons -->
-        <a href="<?= View::escape($returnUrl) ?>" class="btn-apple">
+        <a href="<?= View::escape($finalReturnUrl) ?>" class="btn-apple">
             Kembali ke <?= View::escape($app['app_name'] ?? 'Aplikasi') ?>
         </a>
 

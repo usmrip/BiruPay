@@ -16,7 +16,7 @@
     // Script loader cache
     var loadedScripts = {};
 
-    function loadScript(url, callback) {
+    function loadScript(url, callback, attributes) {
         if (!url) {
             if (callback) callback();
             return;
@@ -29,6 +29,13 @@
         var script = document.createElement('script');
         script.type = 'text/javascript';
         script.src = url;
+        if (attributes) {
+            for (var k in attributes) {
+                if (attributes.hasOwnProperty(k)) {
+                    script.setAttribute(k, attributes[k]);
+                }
+            }
+        }
         script.onload = function() {
             loadedScripts[url] = true;
             if (callback) callback();
@@ -40,7 +47,7 @@
     }
 
     var BiruPay = {
-        version: '1.0.0',
+        version: '1.0.1',
         baseUrl: BIRUPAY_DEFAULT_HOST,
 
         setBaseUrl: function(url) {
@@ -51,26 +58,45 @@
          * Open payment popup given token or gateway reference directly
          */
         open: function(options) {
+            options = options || {};
             var gateway = options.gateway || 'duitku';
-            var token = options.token || options.snap_token || options.gateway_reference;
-            var paymentUrl = options.payment_url || options.gateway_payment_url;
-            var mode = options.mode || 'production';
-            var scriptUrl = options.script_url;
+            var token = options.token || options.snapToken || options.snap_token || options.gatewayReference || options.gateway_reference;
+            var gatewayPaymentUrl = options.gatewayPaymentUrl || options.gateway_payment_url;
+            var paymentUrl = options.paymentUrl || options.payment_url || gatewayPaymentUrl;
+            var scriptUrl = options.scriptUrl || options.script_url;
+            // Auto-detect sandbox mode if token starts with 'DS' (Duitku Sandbox)
+            var mode = options.mode || ((token && typeof token === 'string' && token.indexOf('DS') === 0) ? 'sandbox' : 'production');
 
-            var onSuccess = options.onSuccess || function() {};
-            var onPending = options.onPending || function() {};
-            var onError   = options.onError   || function(err) { alert('Pembayaran dibatalkan atau gagal.'); };
-            var onClose   = options.onClose   || function() {};
+            var onSuccess = function(result) {
+                if (typeof options.onSuccess === 'function') {
+                    options.onSuccess(result);
+                }
+                if (options.successUrl) {
+                    window.location.href = options.successUrl;
+                }
+            };
+            var onPending = function(result) {
+                if (typeof options.onPending === 'function') {
+                    options.onPending(result);
+                }
+                if (options.pendingUrl) {
+                    window.location.href = options.pendingUrl;
+                }
+            };
+            var onError = function(result) {
+                if (typeof options.onError === 'function') {
+                    options.onError(result);
+                } else if (options.errorUrl) {
+                    window.location.href = options.errorUrl;
+                } else {
+                    alert('Pembayaran dibatalkan atau gagal.');
+                }
+            };
+            var onClose = options.onClose || function() {};
 
             // 1. DUITKU GATEWAY
             if (gateway === 'duitku') {
                 var duitkuJs = scriptUrl || (mode === 'sandbox' ? 'https://app-sandbox.duitku.com/lib/js/duitku.js' : 'https://app-prod.duitku.com/lib/js/duitku.js');
-
-                // If sandbox mode, redirect checkout is recommended if iframe is restricted
-                if (mode === 'sandbox' && paymentUrl && !window.checkout) {
-                    window.location.href = paymentUrl;
-                    return;
-                }
 
                 loadScript(duitkuJs, function() {
                     if (window.checkout && token) {
@@ -80,8 +106,8 @@
                                 successEvent: function(result) { onSuccess(result); },
                                 pendingEvent: function(result) { onPending(result); },
                                 errorEvent:   function(result) { 
-                                    if (paymentUrl) {
-                                        window.location.href = paymentUrl;
+                                    if (gatewayPaymentUrl || paymentUrl) {
+                                        window.location.href = (gatewayPaymentUrl || paymentUrl);
                                     } else {
                                         onError(result);
                                     }
@@ -90,16 +116,22 @@
                             });
                         } catch (e) {
                             console.warn('[BiruPay] Duitku popup fallback to URL:', e);
-                            if (paymentUrl) window.location.href = paymentUrl;
+                            if (gatewayPaymentUrl || paymentUrl) {
+                                window.location.href = (gatewayPaymentUrl || paymentUrl);
+                            } else {
+                                onError({ message: e.message || 'Gagal memuat popup Duitku' });
+                            }
                         }
-                    } else if (paymentUrl) {
-                        window.location.href = paymentUrl;
+                    } else if (gatewayPaymentUrl || paymentUrl) {
+                        window.location.href = (gatewayPaymentUrl || paymentUrl);
                     }
                 });
             }
             // 2. MIDTRANS GATEWAY
             else if (gateway === 'midtrans') {
                 var midtransJs = scriptUrl || (mode === 'sandbox' ? 'https://app.sandbox.midtrans.com/snap/snap.js' : 'https://app.midtrans.com/snap/snap.js');
+                var clientKey = options.client_key || options.clientKey || '';
+                var attrs = clientKey ? { 'data-client-key': clientKey } : null;
                 loadScript(midtransJs, function() {
                     if (window.snap && token) {
                         window.snap.pay(token, {
@@ -108,15 +140,23 @@
                             onError:   function(result) { onError(result); },
                             onClose:   function() { onClose(); }
                         });
-                    } else if (paymentUrl) {
-                        window.location.href = paymentUrl;
+                    } else if (gatewayPaymentUrl || paymentUrl) {
+                        window.location.href = (gatewayPaymentUrl || paymentUrl);
                     }
-                });
+                }, attrs);
             }
-            // 3. OTHER / DOKU / FALLBACK
-            else if (paymentUrl) {
-                window.location.href = paymentUrl;
+            // 3. OTHER / DOKU / REDIRECT GATEWAYS
+            else if (gatewayPaymentUrl || paymentUrl) {
+                window.location.href = (gatewayPaymentUrl || paymentUrl);
             }
+        },
+
+        openPopup: function(options) {
+            return this.open(options);
+        },
+
+        pay: function(params) {
+            return this.checkout(params);
         },
 
         /**
@@ -354,4 +394,3 @@
     window.BiruPay = BiruPay;
 
 })(window, document);
-

@@ -44,6 +44,21 @@ class PaymentController extends Controller {
             }
         }
 
+        // Always ensure active transaction gateway config is available
+        $activeGateway = $trx['gateway'] ?? 'midtrans';
+        if (!isset($gatewayConfigs[$activeGateway])) {
+            $specificGw = GatewayConfig::getByCode($activeGateway);
+            if ($specificGw) {
+                if ($activeGateway === 'midtrans') {
+                    $gatewayConfigs['midtrans'] = (new MidtransGateway($specificGw))->getFrontendConfig();
+                } elseif ($activeGateway === 'duitku') {
+                    $gatewayConfigs['duitku'] = (new DuitkuGateway($specificGw))->getFrontendConfig();
+                } elseif ($activeGateway === 'doku') {
+                    $gatewayConfigs['doku'] = (new DokuGateway($specificGw))->getFrontendConfig();
+                }
+            }
+        }
+
         $this->render('payment.checkout', [
             'pageTitle' => 'Pembayaran - ' . ($app['app_name'] ?? 'Biru Indonesia Creative'),
             'trx' => $trx,

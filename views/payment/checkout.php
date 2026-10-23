@@ -5,6 +5,20 @@ $activeGateway = $trx['gateway'] ?? 'midtrans';
 $gwConfig = $gatewayConfigs[$activeGateway] ?? null;
 $appTimezone = $app['timezone'] ?? 'UTC';
 $isSuccess = ($trx['status'] === 'success');
+
+$redirectPaymentUrl = '';
+if ($activeGateway === 'duitku' && !empty($trx['gateway_reference'])) {
+    $isSand = (strpos($trx['gateway_reference'], 'DS') === 0 || empty($gwConfig['is_production']));
+    $redirectPaymentUrl = $isSand 
+        ? 'https://app-sandbox.duitku.com/redirect_checkout?reference=' . urlencode($trx['gateway_reference'])
+        : 'https://app-prod.duitku.com/redirect_checkout?reference=' . urlencode($trx['gateway_reference']);
+} elseif ($activeGateway === 'midtrans' && !empty($trx['snap_token'])) {
+    $redirectPaymentUrl = empty($gwConfig['is_production'])
+        ? 'https://app.sandbox.midtrans.com/snap/v4/redirection/' . urlencode($trx['snap_token'])
+        : 'https://app.midtrans.com/snap/v4/redirection/' . urlencode($trx['snap_token']);
+} elseif ($activeGateway === 'doku' && !empty($trx['gateway_reference'])) {
+    $redirectPaymentUrl = $trx['gateway_reference'];
+}
 ?>
 
 <!-- Load Payment Script in Background -->
@@ -132,6 +146,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const gateway = <?= json_encode($activeGateway) ?>;
     let snapToken = <?= json_encode($trx['snap_token'] ?? '') ?>;
     let gatewayRef = <?= json_encode($trx['gateway_reference'] ?? '') ?>;
+    let redirectUrl = <?= json_encode($redirectPaymentUrl) ?>;
     const returnUrl = <?= json_encode(View::url('payment/return?ref=' . urlencode($trx['trx_reference']))) ?>;
 
     function openGatewayPopup() {
@@ -140,60 +155,101 @@ document.addEventListener('DOMContentLoaded', function () {
                 window.snap.pay(snapToken, {
                     onSuccess: function () { window.location.href = returnUrl; },
                     onPending: function () { window.location.href = returnUrl; },
-                    onError: function () { alert('Pembayaran gagal diproses.'); resetBtn(); },
+                    onError: function () {
+                        if (redirectUrl) { window.location.href = redirectUrl; return; }
+                        alert('Pembayaran dibatalkan atau gagal diproses.'); resetBtn(); 
+                    },
                     onClose: function () { resetBtn(); }
                 });
+                return;
+            } else if (redirectUrl) {
+                window.location.href = redirectUrl;
                 return;
             }
         } else if (gateway === 'duitku') {
             if (typeof checkout !== 'undefined' && gatewayRef) {
-                checkout.process(gatewayRef, {
-                    successEvent: function () { window.location.href = returnUrl; },
-                    pendingEvent: function () { window.location.href = returnUrl; },
-                    errorEvent: function () { alert('Pembayaran gagal diproses.'); resetBtn(); },
-                    closeEvent: function () { resetBtn(); }
-                });
+                try {
+                    checkout.process(gatewayRef, {
+                        successEvent: function () { window.location.href = returnUrl; },
+                        pendingEvent: function () { window.location.href = returnUrl; },
+                        errorEvent: function () {
+                            if (redirectUrl) { window.location.href = redirectUrl; return; }
+                            alert('Pembayaran dibatalkan atau gagal diproses.'); resetBtn(); 
+                        },
+                        closeEvent: function () { resetBtn(); }
+                    });
+                    return;
+                } catch(e) {
+                    console.warn('Duitku popup error, falling back:', e);
+                    if (redirectUrl) { window.location.href = redirectUrl; return; }
+                }
+            } else if (redirectUrl) {
+                window.location.href = redirectUrl;
+                return;
+            }
+        } else if (gateway === 'doku') {
+            if (redirectUrl) {
+                window.location.href = redirectUrl;
                 return;
             }
         }
 
-        // Fallback: fetch/initiate token dynamically via AJAX
-        $.ajax({
-            url: '<?= View::url('payment/initiate') ?>',
-            type: 'POST',
-            dataType: 'json',
-            data: { ref: trxRef, gateway: gateway },
-            success: function (res) {
-                if (res.success) {
-                    if (gateway === 'midtrans' && res.snap_token) {
-                        snapToken = res.snap_token;
+        // Fallback: fetch/initiate token dynamically via fetch
+        fetch('<?= View::url('payment/initiate') ?>', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ ref: trxRef, gateway: gateway })
+        })
+        .then(function (res) { return res.json(); })
+        .then(function (res) {
+            if (res.success) {
+                if (gateway === 'midtrans' && res.snap_token) {
+                    snapToken = res.snap_token;
+                    if (typeof window.snap !== 'undefined') {
                         window.snap.pay(snapToken, {
                             onSuccess: function () { window.location.href = returnUrl; },
                             onPending: function () { window.location.href = returnUrl; },
                             onError: function () { alert('Pembayaran gagal.'); resetBtn(); },
                             onClose: function () { resetBtn(); }
                         });
-                    } else if (gateway === 'duitku' && res.reference) {
-                        gatewayRef = res.reference;
-                        checkout.process(gatewayRef, {
-                            successEvent: function () { window.location.href = returnUrl; },
-                            pendingEvent: function () { window.location.href = returnUrl; },
-                            errorEvent: function () { alert('Pembayaran gagal.'); resetBtn(); },
-                            closeEvent: function () { resetBtn(); }
-                        });
-                    } else {
-                        alert(res.message || 'Gagal memuat popup pembayaran.');
-                        resetBtn();
+                    } else if (res.payment_url) {
+                        window.location.href = res.payment_url;
                     }
+                } else if (gateway === 'duitku' && res.reference) {
+                    gatewayRef = res.reference;
+                    const duitkuUrl = res.payment_url;
+                    if (typeof checkout !== 'undefined') {
+                        try {
+                            checkout.process(gatewayRef, {
+                                successEvent: function () { window.location.href = returnUrl; },
+                                pendingEvent: function () { window.location.href = returnUrl; },
+                                errorEvent: function () {
+                                    if (duitkuUrl) window.location.href = duitkuUrl;
+                                    else { alert('Pembayaran gagal.'); resetBtn(); }
+                                },
+                                closeEvent: function () { resetBtn(); }
+                            });
+                        } catch(e) {
+                            if (duitkuUrl) window.location.href = duitkuUrl;
+                            else { alert('Gagal memuat popup Duitku.'); resetBtn(); }
+                        }
+                    } else if (duitkuUrl) {
+                        window.location.href = duitkuUrl;
+                    }
+                } else if (res.payment_url) {
+                    window.location.href = res.payment_url;
                 } else {
-                    alert(res.message || 'Gagal memproses tagihan.');
+                    alert(res.message || 'Gagal memuat transaksi.');
                     resetBtn();
                 }
-            },
-            error: function () {
-                alert('Koneksi terputus. Silakan coba kembali.');
+            } else {
+                alert(res.message || 'Gagal memproses tagihan.');
                 resetBtn();
             }
+        })
+        .catch(function () {
+            alert('Koneksi terputus. Silakan coba kembali.');
+            resetBtn();
         });
     }
 

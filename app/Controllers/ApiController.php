@@ -48,6 +48,8 @@ class ApiController extends Controller {
         $gatewayChoice = strtolower(trim((string) $request->input('gateway', '')));
         $itemDetails   = $request->input('item_details', []);
         $itemName      = trim((string) $request->input('item_name', 'Pembayaran Layanan ' . $app['app_name']));
+        $returnUrlCustom  = trim((string) $request->input('return_url', ''));
+        $webhookUrlCustom = trim((string) $request->input('webhook_url', ''));
 
         if (empty($orderId) || $amount <= 0) {
             $this->json([
@@ -124,6 +126,8 @@ class ApiController extends Controller {
             'gateway'         => $selectedGateway,
             'amount'          => $amount,
             'fee'             => 0.00,
+            'return_url'      => !empty($returnUrlCustom) ? $returnUrlCustom : null,
+            'webhook_url'     => !empty($webhookUrlCustom) ? $webhookUrlCustom : null,
             'customer_name'   => $customerName,
             'customer_email'  => $customerEmail,
             'customer_phone'  => $customerPhone,

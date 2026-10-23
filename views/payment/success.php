@@ -21,60 +21,32 @@ if (!empty($trx['order_id']) || !empty($trx['trx_reference'])) {
 ?>
 
 <div class="apple-card">
-    <!-- Header Status -->
-    <div style="padding: 36px 24px 20px; text-align: center;">
+    <div class="bp-head">
         <?php if ($isSuccess): ?>
-            <div style="width: 56px; height: 56px; margin: 0 auto 16px; background: rgba(52, 199, 89, 0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #34c759; font-size: 28px;">
-                <i class="bi bi-check2"></i>
-            </div>
-            <div style="font-size: 20px; font-weight: 700; color: #1d1d1f; letter-spacing: -0.02em;">
-                Pembayaran Berhasil
-            </div>
-            <div style="font-size: 13px; color: #86868b; margin-top: 4px;">
-                Transaksi telah terverifikasi dan selesai diproses
-            </div>
+            <div class="bp-status-icon ok"><i class="bi bi-check2"></i></div>
+            <div class="bp-status-title">Pembayaran Berhasil</div>
+            <div class="bp-status-text">Transaksi telah terverifikasi dan selesai diproses</div>
         <?php elseif ($isPending): ?>
-            <div style="width: 56px; height: 56px; margin: 0 auto 16px; background: rgba(255, 149, 0, 0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ff9500; font-size: 24px;">
-                <i class="bi bi-clock-history"></i>
-            </div>
-            <div style="font-size: 20px; font-weight: 700; color: #1d1d1f; letter-spacing: -0.02em;">
-                Menunggu Pembayaran
-            </div>
-            <div style="font-size: 13px; color: #86868b; margin-top: 4px;">
-                Silakan selesaikan pembayaran tagihan Anda
-            </div>
+            <div class="bp-status-icon wait"><i class="bi bi-clock-history"></i></div>
+            <div class="bp-status-title">Menunggu Pembayaran</div>
+            <div class="bp-status-text">Silakan selesaikan pembayaran tagihan Anda</div>
         <?php else: ?>
-            <div style="width: 56px; height: 56px; margin: 0 auto 16px; background: rgba(255, 59, 48, 0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ff3b30; font-size: 26px;">
-                <i class="bi bi-x-lg"></i>
-            </div>
-            <div style="font-size: 20px; font-weight: 700; color: #1d1d1f; letter-spacing: -0.02em;">
-                Pembayaran Tidak Berhasil
-            </div>
-            <div style="font-size: 13px; color: #86868b; margin-top: 4px;">
-                Transaksi dibatalkan atau telah kadaluarsa
-            </div>
+            <div class="bp-status-icon fail"><i class="bi bi-x-lg"></i></div>
+            <div class="bp-status-title">Pembayaran Tidak Berhasil</div>
+            <div class="bp-status-text">Transaksi dibatalkan atau telah kedaluwarsa</div>
         <?php endif; ?>
 
-        <!-- Nominal -->
         <?php if ($trx): ?>
-            <div style="margin-top: 24px;">
-                <div style="font-size: 12px; font-weight: 500; color: #86868b; text-transform: uppercase; letter-spacing: 0.04em;">
-                    Jumlah Dibayar
-                </div>
-                <div style="font-size: 34px; font-weight: 700; color: #1d1d1f; letter-spacing: -0.03em; margin-top: 4px;">
-                    <?= View::formatRupiah($trx['amount']) ?>
-                </div>
-            </div>
+            <div class="bp-amount-label"><?= $isSuccess ? 'Jumlah Dibayar' : 'Total Tagihan' ?></div>
+            <div class="bp-amount"><?= View::formatRupiah($trx['amount']) ?></div>
         <?php endif; ?>
     </div>
 
-    <!-- Divider -->
-    <div style="height: 1px; background: rgba(0,0,0,0.06); margin: 0 24px;"></div>
+    <div class="bp-divider"></div>
 
-    <!-- Details -->
-    <div style="padding: 24px;">
+    <div class="bp-body">
         <?php if ($trx): ?>
-            <table class="table-summary" style="margin-bottom: 24px;">
+            <table class="table-summary" style="margin-bottom: 22px;">
                 <tbody>
                     <tr>
                         <td class="label">Layanan</td>
@@ -85,17 +57,17 @@ if (!empty($trx['order_id']) || !empty($trx['trx_reference'])) {
                         <td class="value"><?= View::escape($trx['order_id']) ?></td>
                     </tr>
                     <tr>
-                        <td class="label">No. Referensi</td>
-                        <td class="value" style="font-family: monospace; font-size: 12px;"><?= View::escape($trx['trx_reference']) ?></td>
+                        <td class="label">Referensi</td>
+                        <td class="value" style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;"><?= View::escape($trx['trx_reference']) ?></td>
                     </tr>
                     <?php if (!empty($trx['payment_method'])): ?>
                     <tr>
-                        <td class="label">Metode Pembayaran</td>
+                        <td class="label">Metode</td>
                         <td class="value" style="text-transform: uppercase;"><?= View::escape($trx['payment_method']) ?></td>
                     </tr>
                     <?php endif; ?>
                     <tr>
-                        <td class="label">Waktu Transaksi</td>
+                        <td class="label">Waktu</td>
                         <td class="value"><?= View::formatDateTime($trx['paid_at'] ?? $trx['created_at'], $appTimezone) ?></td>
                     </tr>
                     <tr>
@@ -106,7 +78,6 @@ if (!empty($trx['order_id']) || !empty($trx['trx_reference'])) {
             </table>
         <?php endif; ?>
 
-        <!-- Action Buttons -->
         <a href="<?= View::escape($finalReturnUrl) ?>" class="btn-apple">
             Kembali ke <?= View::escape($app['app_name'] ?? 'Aplikasi') ?>
         </a>

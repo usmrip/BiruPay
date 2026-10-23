@@ -170,9 +170,9 @@ Router::post('/payment/initiate', [PaymentController::class, 'initiateGateway'])
 Router::get('/payment/return', [PaymentController::class, 'paymentReturn']);
 
 // Webhook Notifications from Gateways
-Router::post('/webhook/midtrans', [WebhookController::class, 'midtrans']);
-Router::post('/webhook/duitku', [WebhookController::class, 'duitku']);
-Router::post('/webhook/doku', [WebhookController::class, 'doku']);
+Router::any('/webhook/midtrans', [WebhookController::class, 'midtrans']);
+Router::any('/webhook/duitku', [WebhookController::class, 'duitku']);
+Router::any('/webhook/doku', [WebhookController::class, 'doku']);
 
 // Public REST API for Biru Platforms
 Router::post('/api/v1/payment/create', [ApiController::class, 'createPayment']);

@@ -15,6 +15,15 @@ use App\Services\WebhookDispatcherService;
 
 class WebhookController extends Controller {
     public function midtrans(Request $request): void {
+        if ($request->method() === 'GET') {
+            $this->json([
+                'status'  => 'active',
+                'gateway' => 'midtrans',
+                'message' => 'Biru PayHub Midtrans Webhook Endpoint is active. POST notifications are accepted.'
+            ]);
+            return;
+        }
+
         Log::info('webhook_midtrans', 'Midtrans webhook received', ['raw' => $request->rawBody()]);
 
         $gateway = new MidtransGateway();
@@ -30,6 +39,15 @@ class WebhookController extends Controller {
     }
 
     public function duitku(Request $request): void {
+        if ($request->method() === 'GET') {
+            $this->json([
+                'status'  => 'active',
+                'gateway' => 'duitku',
+                'message' => 'Biru PayHub Duitku Webhook Endpoint is active. POST notifications are accepted.'
+            ]);
+            return;
+        }
+
         Log::info('webhook_duitku', 'Duitku webhook received', ['params' => $request->all(), 'raw' => $request->rawBody()]);
 
         $gateway = new DuitkuGateway();
@@ -45,6 +63,15 @@ class WebhookController extends Controller {
     }
 
     public function doku(Request $request): void {
+        if ($request->method() === 'GET') {
+            $this->json([
+                'status'  => 'active',
+                'gateway' => 'doku',
+                'message' => 'Biru PayHub DOKU Webhook Endpoint is active. POST notifications are accepted.'
+            ]);
+            return;
+        }
+
         Log::info('webhook_doku', 'DOKU webhook received', ['raw' => $request->rawBody()]);
 
         $gateway = new DokuGateway();

@@ -1,6 +1,19 @@
 <?php
 use App\Core\View;
+use App\Core\Session;
+$jam = (int) date('G');
+$salam = $jam < 11 ? 'Selamat pagi' : ($jam < 15 ? 'Selamat siang' : ($jam < 19 ? 'Selamat sore' : 'Selamat malam'));
 ?>
+
+<div class="page-greeting mb-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+        <h4><?= $salam ?>, <?= View::escape(Session::get('user_name', 'Admin')) ?></h4>
+        <p>Ringkasan aktivitas pembayaran dari semua platform Biru.</p>
+    </div>
+    <a href="<?= View::url('transactions') ?>" class="btn btn-primary btn-sm px-3">
+        <i class="bi bi-receipt me-1"></i> Laporan Transaksi
+    </a>
+</div>
 
 <!-- Statistics Row -->
 <div class="row g-3 mb-4">
@@ -58,24 +71,24 @@ use App\Core\View;
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div class="d-flex align-items-center gap-2">
-                            <span class="p-2 rounded-3 bg-light border">
-                                <i class="bi bi-credit-card-2-front text-primary"></i>
+                            <span class="stat-icon primary" style="width:36px;height:36px;font-size:1rem;border-radius:10px;">
+                                <i class="bi bi-credit-card-2-front"></i>
                             </span>
                             <h6 class="mb-0 fw-bold"><?= View::escape($gw['gateway_name']) ?></h6>
                         </div>
                         <?php if ($gw['is_active']): ?>
-                            <span class="badge bg-success-subtle text-success border border-success-subtle">Aktif</span>
+                            <span class="badge bg-success-subtle text-success-emphasis">Aktif</span>
                         <?php else: ?>
-                            <span class="badge bg-secondary-subtle text-secondary border">Nonaktif</span>
+                            <span class="badge bg-secondary-subtle text-secondary-emphasis">Nonaktif</span>
                         <?php endif; ?>
                     </div>
-                    <div class="d-flex justify-content-between small text-muted mb-2">
-                        <span>Mode Environment:</span>
-                        <strong class="text-dark"><?= $gw['is_production'] ? 'Production (Live)' : 'Sandbox (Testing)' ?></strong>
+                    <div class="gw-row">
+                        <span>Mode</span>
+                        <strong><?= $gw['is_production'] ? 'Production (Live)' : 'Sandbox (Testing)' ?></strong>
                     </div>
-                    <div class="d-flex justify-content-between small text-muted mb-3">
-                        <span>Metode Integrasi:</span>
-                        <strong class="text-dark">
+                    <div class="gw-row mb-3">
+                        <span>Integrasi</span>
+                        <strong>
                             <?php if ($gw['gateway_code'] === 'midtrans'): ?>
                                 Snap Popup (Modal)
                             <?php elseif ($gw['gateway_code'] === 'duitku'): ?>
@@ -86,7 +99,7 @@ use App\Core\View;
                         </strong>
                     </div>
                     <a href="<?= View::url('gateways') ?>" class="btn btn-sm btn-outline-primary w-100">
-                        <i class="bi bi-sliders me-1"></i> Atur Konfigurasi
+                        <i class="bi bi-sliders me-1"></i> Atur Gateway
                     </a>
                 </div>
             </div>
@@ -202,7 +215,7 @@ use App\Core\View;
                 <p class="small text-muted mb-3">
                     Semua transaksi dari platform Biru masuk melalui 1 pintu dengan 1 akun & project di masing-masing payment gateway.
                 </p>
-                <div class="bg-light p-2 rounded-3 border small font-monospace text-truncate mb-3">
+                <div class="p-2 rounded-3 small font-monospace text-truncate mb-3" style="background:#f6f8fb;border:1px solid #e8ecf2;">
                     <?= View::url('pay') ?>
                 </div>
                 <a href="<?= View::url('docs') ?>" class="btn btn-sm btn-outline-primary w-100">

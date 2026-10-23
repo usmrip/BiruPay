@@ -11,17 +11,18 @@ $active = $activeNav ?? 'dashboard';
     <title><?= View::escape($pageTitle ?? 'Dashboard') ?> - Biru PayHub</title>
     <link rel="stylesheet" href="<?= View::asset('css/bootstrap.min.css') ?>">
     <link rel="stylesheet" href="<?= View::asset('css/bootstrap-icons.min.css') ?>">
-    <link rel="stylesheet" href="<?= View::asset('css/app.css') ?>">
+    <link rel="stylesheet" href="<?= View::asset('css/app.css') ?>?v=<?= @filemtime(__DIR__ . '/../../public/assets/css/app.css') ?: 1 ?>">
 </head>
 <body>
 <div class="d-flex">
+    <div class="sidebar-backdrop" onclick="document.body.classList.remove('sidebar-open')"></div>
     <!-- Sidebar -->
     <aside class="app-sidebar d-flex flex-column">
         <a href="<?= View::url('dashboard') ?>" class="sidebar-brand">
             <div class="brand-logo">B</div>
             <div>
                 <div>Biru PayHub</div>
-                <small class="text-secondary fw-normal" style="font-size: 0.7rem;">Sistem Pembayaran Terpusat</small>
+                <small class="text-secondary fw-normal" style="font-size: 0.72rem;">Sistem Pembayaran Terpusat</small>
             </div>
         </a>
 
@@ -72,25 +73,25 @@ $active = $activeNav ?? 'dashboard';
                 </a>
             </li>
             <li class="menu-item">
-                <a href="/demo/pembayaran" target="_blank" class="menu-link text-warning-emphasis">
-                    <i class="bi bi-play-circle-fill text-warning"></i>
+                <a href="/demo/pembayaran" target="_blank" class="menu-link">
+                    <i class="bi bi-play-circle"></i>
                     <span>Halaman Test Demo</span>
                 </a>
             </li>
         </ul>
 
-        <div class="p-3 border-top border-secondary border-opacity-25">
+        <div class="sidebar-user">
             <div class="d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center gap-2">
                     <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 0.85rem; font-weight: 700;">
                         <?= strtoupper(substr(Session::get('user_name', 'A'), 0, 1)) ?>
                     </div>
                     <div style="line-height: 1.2;">
-                        <div class="text-white small fw-bold text-truncate" style="max-width: 130px;"><?= View::escape(Session::get('user_name', 'Admin')) ?></div>
+                        <div class="small fw-semibold text-truncate" style="max-width: 130px;"><?= View::escape(Session::get('user_name', 'Admin')) ?></div>
                         <small class="text-secondary" style="font-size: 0.7rem;"><?= View::escape(Session::get('user_role', 'admin')) ?></small>
                     </div>
                 </div>
-                <a href="<?= View::url('logout') ?>" class="btn btn-sm btn-outline-danger" title="Keluar">
+                <a href="<?= View::url('logout') ?>" class="btn btn-sm btn-light border text-danger" title="Keluar">
                     <i class="bi bi-box-arrow-right"></i>
                 </a>
             </div>
@@ -101,17 +102,15 @@ $active = $activeNav ?? 'dashboard';
     <div class="app-main">
         <header class="app-navbar d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-3">
+                <button type="button" class="sidebar-toggle" aria-label="Menu" onclick="document.body.classList.toggle('sidebar-open')"><i class="bi bi-list"></i></button>
                 <h5 class="mb-0 fw-bold text-dark"><?= View::escape($pageTitle ?? 'Dashboard') ?></h5>
             </div>
             <div class="d-flex align-items-center gap-2">
-                <a href="/demo/pembayaran" target="_blank" class="btn btn-sm btn-success">
-                    <i class="bi bi-play-circle me-1"></i> Test Demo
-                </a>
-                <span class="badge bg-light text-secondary border px-3 py-2">
+                <span class="badge bg-light text-secondary border px-3 py-2 d-none d-md-inline-flex">
                     <i class="bi bi-calendar3 me-1"></i> <?= date('d M Y') ?>
                 </span>
                 <a href="<?= View::url('docs') ?>" class="btn btn-sm btn-outline-primary">
-                    <i class="bi bi-terminal me-1"></i> API Docs
+                    <i class="bi bi-terminal me-1"></i> <span class="d-none d-sm-inline">API Docs</span>
                 </a>
             </div>
         </header>
@@ -137,7 +136,7 @@ $active = $activeNav ?? 'dashboard';
         </main>
 
         <footer class="text-center py-3 text-muted small border-top bg-white">
-            &copy; <?= date('Y') ?> <strong>Biru Indonesia Creative</strong>. All rights reserved. &bull; Biru PayHub v1.0.0
+            &copy; <?= date('Y') ?> <strong>Biru Indonesia Creative</strong>. All rights reserved. &bull; Biru PayHub v1.0.2
         </footer>
     </div>
 </div>

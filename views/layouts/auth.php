@@ -12,12 +12,12 @@ use App\Core\Session;
     <link rel="stylesheet" href="<?= View::asset('css/bootstrap-icons.min.css') ?>">
     <link rel="stylesheet" href="<?= View::asset('css/app.css') ?>">
 </head>
-<body class="bg-light d-flex align-items-center min-vh-100 py-5">
+<body class="d-flex align-items-center min-vh-100 py-5">
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-5 col-lg-4">
             <div class="text-center mb-4">
-                <div class="brand-logo mx-auto mb-2" style="width: 50px; height: 50px; background: linear-gradient(135deg, #0052cc, #00c7e5); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 1.5rem;">B</div>
+                <div class="brand-logo mx-auto mb-2" style="width: 50px; height: 50px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-radius: 14px; box-shadow: 0 8px 18px -8px rgba(37,99,235,.55); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 1.5rem;">B</div>
                 <h4 class="fw-bold mb-0 text-dark">Biru PayHub</h4>
                 <p class="text-muted small">Sistem Pembayaran Terpusat - Biru Indonesia Creative</p>
             </div>

@@ -30,7 +30,7 @@
           "type": "zip",
           "url": "https://biru.co.id/pembayaran/composer/biru-payhub-v1.0.0.zip",
           "reference": "v1.0.0",
-          "shasum": "cb38cd1b205e85ce8d96e143af2a94389ac2debe"
+          "shasum": "a6b116de58e240a743fe0d9c597a6fc916de9e98"
         }
       },
       "1.0.2": {
@@ -62,7 +62,7 @@
           "type": "zip",
           "url": "https://biru.co.id/pembayaran/composer/biru-payhub-v1.0.2.zip",
           "reference": "v1.0.2",
-          "shasum": "47212895cafc2b3d041e3edfa2ee5ea7329fe5bf"
+          "shasum": "77805fa93f725b2d65bb3e4fe8b46ea9f567e7c0"
         }
       }
     }

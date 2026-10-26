@@ -1,122 +1,137 @@
-# BiruPay PHP SDK
+# Biru PayHub - Panduan Pengguna
 
-Official PHP SDK untuk integrasi pembayaran terpusat **Biru PayHub** (Midtrans, Duitku, DOKU) untuk seluruh platform ekosistem **Biru Indonesia Creative**.
-
-[![Latest Stable Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://biru.co.id/pembayaran)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![PHP Version](https://img.shields.io/badge/php-%3E%3D7.4-8892BF.svg)](https://php.net)
+> Sistem pembayaran terpusat untuk menghubungkan berbagai platform dan aplikasi Biru ke berbagai payment gateway (Midtrans, Duitku, DOKU) hanya dengan **1 akun merchant**.
 
 ---
 
-## 🚀 Fitur Utama
-* **Multi-Gateway 1 Pintu:** Cukup 1 akun Midtrans, Duitku, & Doku untuk melayani semua platform Biru Anda.
-* **Popup Otomatis:** Mendukung Midtrans Snap & Duitku Pop.
-* **Verifikasi Webhook Otomatis:** Validasi signature keamanan HMAC-SHA256 bawaan.
-* **Auto-Sync Gateway:** Pengecekan status real-time langsung ke gateway jika masih pending.
-* **Siap untuk Framework:** Laravel, CodeIgniter 4, Symfony, WordPress, Yii, & Native PHP.
+## Alamat Akses
+
+- **Dashboard Admin:** [https://biru.co.id/pembayaran](https://biru.co.id/pembayaran)
+- **Halaman Uji Coba (Demo):** [https://biru.co.id/demo/pembayaran/](https://biru.co.id/demo/pembayaran/)
+- **Dokumentasi API Interaktif:** [https://biru.co.id/pembayaran/docs](https://biru.co.id/pembayaran/docs)
 
 ---
 
-## 📦 Instalasi via Composer
+## 3 Langkah Mudah Memulai
 
-### Cara 1: Menggunakan Custom Repository Biru
-Jalankan di terminal proyek Anda:
+### 1. Hubungkan Payment Gateway
+1. Buka menu **Setup Gateway** di dashboard.
+2. Masukkan kredensial gateway yang Anda miliki:
+   - **Duitku:** Merchant Code & API Key.
+   - **Midtrans:** Merchant ID, Client Key, & Server Key.
+   - **DOKU:** Client ID & Secret Key.
+3. Anda dapat mengisi kredensial **Sandbox (Uji Coba)** dan **Live (Produksi)** sekaligus.
+4. Salin URL Webhook yang tertera di halaman tersebut dan tempelkan pada dashboard merchant masing-masing gateway.
+
+---
+
+### 2. Daftarkan Platform / Aplikasi Anda
+1. Buka menu **Platform & Aplikasi** lalu klik **Tambah Platform**.
+2. Isi nama platform (misal: *Biru Store*, *Biru Academy*).
+3. Atur preferensi transaksi:
+   - **Mode Transaksi:** Pilih **SANDBOX** (uji coba) atau **LIVE** (uang nyata).
+   - **Gateway Live:** Gateway yang aktif saat mode Live (misal: Midtrans).
+   - **Gateway Sandbox:** Gateway yang aktif saat mode Sandbox (misal: Duitku).
+4. Klik **Simpan**. Sistem otomatis membuatkan **API Key** unik untuk platform Anda.
+
+---
+
+### 3. Pasang Pembayaran di Aplikasi Anda
+
+Pilih salah satu cara integrasi yang paling cocok untuk aplikasi Anda:
+
+#### Pilihan A: Menggunakan JavaScript Popup (Paling Mudah)
+Cukup pasang script di website Anda:
+
+```html
+<!-- 1. Muat Script BiruPay -->
+<script src="https://biru.co.id/pembayaran/birupay.js"></script>
+
+<!-- 2. Panggil Pembayaran -->
+<script>
+BiruPay.pay({
+    apiKey: 'MASUKKAN_API_KEY_PLATFORM_ANDA',
+    orderId: 'INV-001',
+    amount: 50000,
+    customerName: 'Budi Santoso',
+    customerEmail: 'budi@example.com',
+    customerPhone: '081234567890',
+    onSuccess: function(result) {
+        alert('Pembayaran berhasil!');
+        window.location.reload();
+    },
+    onPending: function(result) {
+        alert('Menunggu pembayaran...');
+    },
+    onError: function(err) {
+        alert('Terjadi kesalahan: ' + err.message);
+    }
+});
+</script>
+```
+
+#### Pilihan B: Menggunakan PHP / Composer
+Jika menggunakan PHP, instal SDK resmi:
+
 ```bash
-composer config repositories.biru composer https://biru.co.id/pembayaran/composer
 composer require biru/payhub
 ```
 
-Atau tambahkan ke file `composer.json` Anda:
+Lalu panggil di backend Anda:
+
+```php
+use BiruPay\Client;
+
+$client = new Client('MASUKKAN_API_KEY_PLATFORM_ANDA');
+
+$invoice = $client->createPayment([
+    'order_id'       => 'INV-' . time(),
+    'amount'         => 50000,
+    'customer_name'  => 'Budi Santoso',
+    'customer_email' => 'budi@example.com',
+    'customer_phone' => '081234567890',
+    'item_name'      => 'Langganan Layanan'
+]);
+
+// Arahkan pelanggan ke halaman pembayaran:
+header('Location: ' . $invoice['payment_url']);
+exit;
+```
+
+#### Pilihan C: Menggunakan REST API Langsung
+Kirim permintaan `POST` ke endpoint:
+
+`POST https://biru.co.id/pembayaran/api/v1/payment/create`
+
+**Header:**
+```http
+Content-Type: application/json
+X-Biru-ApiKey: MASUKKAN_API_KEY_PLATFORM_ANDA
+```
+
+**Body JSON:**
 ```json
 {
-    "repositories": [
-        {
-            "type": "composer",
-            "url": "https://biru.co.id/pembayaran/composer"
-        }
-    ],
-    "require": {
-        "biru/payhub": "^1.0"
-    }
+  "order_id": "INV-20261027-01",
+  "amount": 50000,
+  "customer_name": "Budi Santoso",
+  "customer_email": "budi@example.com",
+  "customer_phone": "081234567890",
+  "item_name": "Aktivasi Layanan"
 }
 ```
-Lalu jalankan `composer update`.
+
+> **Catatan Mode:** Jika parameter `mode` tidak dikirim oleh client, sistem otomatis mengikuti mode yang diatur pada platform Anda (default: `sandbox`). Untuk memaksa mode tertentu dari kode, tambahkan `"mode": "live"` atau `"mode": "sandbox"`.
 
 ---
 
-## 💡 Contoh Penggunaan
+## Fitur Tambahan di Dashboard
 
-### 1. Inisialisasi Klien
-```php
-<?php
-require_once 'vendor/autoload.php';
-
-use BiruPay\Client;
-
-$client = new Client('YOUR_API_KEY');
-```
-
-### 2. Membuat Tagihan Pembayaran
-```php
-use BiruPay\Exception\BiruPayException;
-
-try {
-    $payment = $client->createPayment([
-        'order_id'       => 'INV-' . time(),
-        'amount'         => 50000,
-        'customer_name'  => 'Budi Santoso',
-        'customer_email' => 'budi@example.com',
-        'customer_phone' => '081234567890',
-        'item_name'      => 'Aktivasi Layanan Biru VIP'
-    ]);
-
-    // Alihkan pembeli langsung ke halaman pembayaran:
-    header('Location: ' . $payment['payment_url']);
-    exit;
-
-} catch (BiruPayException $e) {
-    echo "Gagal: " . $e->getMessage();
-}
-```
-
-### 3. Menerima Webhook Callback (Otomatis Lunas)
-```php
-<?php
-// file: webhook.php di aplikasi Anda
-require_once 'vendor/autoload.php';
-
-use BiruPay\Client;
-use BiruPay\Exception\BiruPayException;
-
-$client = new Client('YOUR_API_KEY');
-
-try {
-    $webhook = $client->verifyWebhook();
-
-    if ($webhook->isSuccess()) {
-        $orderId = $webhook->getOrderId();
-        $amount  = $webhook->getAmount();
-        $metode  = $webhook->getPaymentMethod();
-
-        // 1. Eksekusi pembaruan status pesanan di database Anda menjadi LUNAS
-        // markOrderAsPaid($orderId, $metode);
-
-        // 2. Beri respon 200 OK ke Biru PayHub
-        $webhook->respondOk();
-    }
-} catch (BiruPayException $e) {
-    http_response_code(400);
-    echo $e->getMessage();
-}
-```
-
-### 4. Pengecekan Status Real-Time
-```php
-$status = $client->checkStatus('INV-12345');
-echo "Status: " . $status['status']; // 'success', 'pending', 'failed'
-```
+- **Ganti Mode Instan:** Anda dapat beralih antara Mode Sandbox dan Live hanya dengan 1 klik pada tabel platform.
+- **Terapkan Masal:** Ubah gateway atau mode untuk seluruh platform secara serentak melalui tombol *Mode Masal* atau *Gateway Masal*.
+- **Laporan Transaksi:** Pantau status transaksi secara real-time, ekspor data ke Excel/CSV, atau kirim ulang webhook jika notifikasi di aplikasi tujuan sempat tertunda.
+- **Notifikasi Otomatis:** Atur notifikasi Telegram Bot dan Email bukti bayar otomatis di menu **Notifikasi & Setup**.
 
 ---
 
-## 📄 Lisensi
-Dilisensikan di bawah [MIT License](LICENSE) © Biru Indonesia Creative.
+&copy; Biru Indonesia Creative &bull; [biru.co.id](https://biru.co.id)

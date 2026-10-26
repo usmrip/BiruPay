@@ -17,7 +17,7 @@
     --bp-red-soft: #fdecec;
     --bp-radius: 20px;
     --bp-radius-sm: 12px;
-    --bp-font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --bp-font: 'Plus Jakarta Sans', system-ui, -apple-system, "SF Pro Display", "SF Pro Text", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 * { box-sizing: border-box; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }

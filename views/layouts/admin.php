@@ -9,6 +9,9 @@ $active = $activeNav ?? 'dashboard';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= View::escape($pageTitle ?? 'Dashboard') ?> - Biru PayHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= View::asset('css/bootstrap.min.css') ?>">
     <link rel="stylesheet" href="<?= View::asset('css/bootstrap-icons.min.css') ?>">
     <link rel="stylesheet" href="<?= View::asset('css/app.css') ?>?v=<?= @filemtime(__DIR__ . '/../../public/assets/css/app.css') ?: 1 ?>">
@@ -83,15 +86,15 @@ $active = $activeNav ?? 'dashboard';
         <div class="sidebar-user">
             <div class="d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center gap-2">
-                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 0.85rem; font-weight: 700;">
+                    <div class="rounded-circle text-white d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; font-size: 0.85rem; font-weight: 700; background: linear-gradient(135deg, #0071e3, #4facfe);">
                         <?= strtoupper(substr(Session::get('user_name', 'A'), 0, 1)) ?>
                     </div>
-                    <div style="line-height: 1.2;">
-                        <div class="small fw-semibold text-truncate" style="max-width: 130px;"><?= View::escape(Session::get('user_name', 'Admin')) ?></div>
-                        <small class="text-secondary" style="font-size: 0.7rem;"><?= View::escape(Session::get('user_role', 'admin')) ?></small>
+                    <div style="line-height: 1.25;">
+                        <div class="small fw-semibold text-truncate text-dark" style="max-width: 130px;"><?= View::escape(Session::get('user_name', 'Admin')) ?></div>
+                        <small class="text-muted" style="font-size: 0.72rem;"><?= ucfirst(View::escape(Session::get('user_role', 'admin'))) ?></small>
                     </div>
                 </div>
-                <a href="<?= View::url('logout') ?>" class="btn btn-sm btn-light border text-danger" title="Keluar">
+                <a href="<?= View::url('logout') ?>" class="btn btn-sm btn-light border text-danger btn-pill" title="Keluar">
                     <i class="bi bi-box-arrow-right"></i>
                 </a>
             </div>
@@ -106,10 +109,10 @@ $active = $activeNav ?? 'dashboard';
                 <h5 class="mb-0 fw-bold text-dark"><?= View::escape($pageTitle ?? 'Dashboard') ?></h5>
             </div>
             <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-light text-secondary border px-3 py-2 d-none d-md-inline-flex">
-                    <i class="bi bi-calendar3 me-1"></i> <?= date('d M Y') ?>
+                <span class="badge bg-white text-secondary border px-3 py-2 d-none d-md-inline-flex" style="border-radius: 980px; font-weight: 500;">
+                    <i class="bi bi-calendar3 me-1 text-primary"></i> <?= date('d M Y') ?>
                 </span>
-                <a href="<?= View::url('docs') ?>" class="btn btn-sm btn-outline-primary">
+                <a href="<?= View::url('docs') ?>" class="btn btn-sm btn-outline-primary btn-pill px-3">
                     <i class="bi bi-terminal me-1"></i> <span class="d-none d-sm-inline">API Docs</span>
                 </a>
             </div>
@@ -120,11 +123,11 @@ $active = $activeNav ?? 'dashboard';
             <?php foreach (['success', 'danger', 'warning', 'info'] as $type): ?>
                 <?php if (Session::hasFlash($type)): ?>
                     <?php foreach (Session::getFlash($type) as $msg): ?>
-                        <div class="alert alert-<?= $type ?> alert-dismissible fade show d-flex align-items-center gap-2 shadow-sm" role="alert">
-                            <?php if ($type === 'success'): ?><i class="bi bi-check-circle-fill"></i><?php endif; ?>
-                            <?php if ($type === 'danger'): ?><i class="bi bi-exclamation-triangle-fill"></i><?php endif; ?>
-                            <?php if ($type === 'warning'): ?><i class="bi bi-exclamation-circle-fill"></i><?php endif; ?>
-                            <?php if ($type === 'info'): ?><i class="bi bi-info-circle-fill"></i><?php endif; ?>
+                        <div class="alert alert-<?= $type ?> alert-dismissible fade show d-flex align-items-center gap-2 shadow-sm rounded-4 border-0" role="alert">
+                            <?php if ($type === 'success'): ?><i class="bi bi-check-circle-fill text-success"></i><?php endif; ?>
+                            <?php if ($type === 'danger'): ?><i class="bi bi-exclamation-triangle-fill text-danger"></i><?php endif; ?>
+                            <?php if ($type === 'warning'): ?><i class="bi bi-exclamation-circle-fill text-warning"></i><?php endif; ?>
+                            <?php if ($type === 'info'): ?><i class="bi bi-info-circle-fill text-primary"></i><?php endif; ?>
                             <div><?= $msg ?></div>
                             <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
@@ -135,8 +138,8 @@ $active = $activeNav ?? 'dashboard';
             <?= $content ?>
         </main>
 
-        <footer class="text-center py-3 text-muted small border-top bg-white">
-            &copy; <?= date('Y') ?> <strong>Biru Indonesia Creative</strong>. All rights reserved. &bull; Biru PayHub v1.0.2
+        <footer class="text-center py-3 text-muted small border-top" style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px);">
+            &copy; <?= date('Y') ?> <strong>Biru Indonesia Creative</strong> &bull; Biru PayHub v1.0.3
         </footer>
     </div>
 </div>

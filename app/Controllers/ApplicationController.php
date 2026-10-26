@@ -16,9 +16,10 @@ class ApplicationController extends Controller {
         // Append stats to each application
         foreach ($applications as &$app) {
             $app['trx_count'] = Transaction::count(['app_id' => $app['id']]);
-            $app['effective_gateway'] = Application::resolveGateway($app);
-            $app['effective_live']    = Application::resolveGateway($app, 'live');
-            $app['effective_sandbox'] = Application::resolveGateway($app, 'sandbox');
+            $app['resolved_mode'] = Application::resolveMode($app);
+            $app['live_gateway'] = Application::resolveGateway($app, 'live');
+            $app['sandbox_gateway'] = Application::resolveGateway($app, 'sandbox');
+            $app['effective_gateway'] = Application::resolveGateway($app, $app['resolved_mode']);
         }
 
         $activeGateways = GatewayConfig::getActiveGateways();
@@ -62,10 +63,7 @@ class ApplicationController extends Controller {
         if (!in_array($timezone, \DateTimeZone::listIdentifiers())) {
             $timezone = 'UTC';
         }
-        $defaultGw = trim($request->post('default_gateway', 'default'));
-        if (!in_array($defaultGw, ['default', 'midtrans', 'duitku', 'doku'])) {
-            $defaultGw = 'default';
-        }
+        $mode = trim($request->post('mode', 'sandbox')) === 'live' ? 'live' : 'sandbox';
         $gatewayLive = trim($request->post('gateway_live', 'default'));
         if (!in_array($gatewayLive, ['default', 'midtrans', 'duitku', 'doku'])) {
             $gatewayLive = 'default';
@@ -73,6 +71,10 @@ class ApplicationController extends Controller {
         $gatewaySandbox = trim($request->post('gateway_sandbox', 'default'));
         if (!in_array($gatewaySandbox, ['default', 'midtrans', 'duitku', 'doku'])) {
             $gatewaySandbox = 'default';
+        }
+        $defaultGw = trim($request->post('default_gateway', 'default'));
+        if (!in_array($defaultGw, ['default', 'midtrans', 'duitku', 'doku'])) {
+            $defaultGw = 'default';
         }
 
         if (empty($appCode) || empty($appName)) {
@@ -91,11 +93,12 @@ class ApplicationController extends Controller {
             'app_code'        => $appCode,
             'app_name'        => $appName,
             'api_key'         => $apiKey,
-            'webhook_url'     => $webhook,
-            'return_url'      => $return,
-            'default_gateway' => $defaultGw,
+            'mode'            => $mode,
             'gateway_live'    => $gatewayLive,
             'gateway_sandbox' => $gatewaySandbox,
+            'default_gateway' => $defaultGw,
+            'webhook_url'     => $webhook,
+            'return_url'      => $return,
             'timezone'        => $timezone,
             'description'     => $desc,
             'status'          => 'active'
@@ -144,10 +147,7 @@ class ApplicationController extends Controller {
             $timezone = 'UTC';
         }
         $status    = $request->post('status') === 'inactive' ? 'inactive' : 'active';
-        $defaultGw = trim($request->post('default_gateway', 'default'));
-        if (!in_array($defaultGw, ['default', 'midtrans', 'duitku', 'doku'])) {
-            $defaultGw = 'default';
-        }
+        $mode      = trim($request->post('mode', 'sandbox')) === 'live' ? 'live' : 'sandbox';
         $gatewayLive = trim($request->post('gateway_live', 'default'));
         if (!in_array($gatewayLive, ['default', 'midtrans', 'duitku', 'doku'])) {
             $gatewayLive = 'default';
@@ -155,6 +155,10 @@ class ApplicationController extends Controller {
         $gatewaySandbox = trim($request->post('gateway_sandbox', 'default'));
         if (!in_array($gatewaySandbox, ['default', 'midtrans', 'duitku', 'doku'])) {
             $gatewaySandbox = 'default';
+        }
+        $defaultGw = trim($request->post('default_gateway', 'default'));
+        if (!in_array($defaultGw, ['default', 'midtrans', 'duitku', 'doku'])) {
+            $defaultGw = 'default';
         }
 
         if (empty($appName)) {
@@ -165,11 +169,12 @@ class ApplicationController extends Controller {
 
         Application::update($id, [
             'app_name'        => $appName,
-            'webhook_url'     => $webhook,
-            'return_url'      => $return,
-            'default_gateway' => $defaultGw,
+            'mode'            => $mode,
             'gateway_live'    => $gatewayLive,
             'gateway_sandbox' => $gatewaySandbox,
+            'default_gateway' => $defaultGw,
+            'webhook_url'     => $webhook,
+            'return_url'      => $return,
             'timezone'        => $timezone,
             'description'     => $desc,
             'status'          => $status
@@ -182,7 +187,6 @@ class ApplicationController extends Controller {
     public function bulkGateway(Request $request): void {
         $this->validateCsrf($request);
         $targetGateway = trim($request->post('target_gateway', 'default'));
-        $targetMode    = trim($request->post('target_mode', 'all'));
 
         if (!in_array($targetGateway, ['default', 'midtrans', 'duitku', 'doku'])) {
             Session::setFlash('danger', 'Payment gateway yang dipilih tidak valid.');
@@ -190,11 +194,7 @@ class ApplicationController extends Controller {
             return;
         }
 
-        if (!in_array($targetMode, ['all', 'live', 'sandbox'])) {
-            $targetMode = 'all';
-        }
-
-        $count = Application::updateBulkGateway($targetGateway, $targetMode);
+        $count = Application::updateBulkGateway($targetGateway);
         $gwLabel = match($targetGateway) {
             'midtrans' => 'Midtrans (Snap Popup)',
             'duitku'   => 'Duitku (Duitku Pop)',
@@ -202,13 +202,18 @@ class ApplicationController extends Controller {
             default    => 'Default Sistem'
         };
 
-        $modeLabel = match($targetMode) {
-            'live'    => 'Mode Live',
-            'sandbox' => 'Mode Sandbox',
-            default   => 'Semua Mode (Live & Sandbox)'
-        };
+        Session::setFlash('success', "Berhasil memperbarui {$count} platform untuk menggunakan {$gwLabel}!");
+        $this->redirect('applications');
+    }
 
-        Session::setFlash('success', "Berhasil memperbarui {$count} platform ({$modeLabel}) untuk menggunakan {$gwLabel}!");
+    public function bulkMode(Request $request): void {
+        $this->validateCsrf($request);
+        $targetMode = trim($request->post('target_mode', 'sandbox')) === 'live' ? 'live' : 'sandbox';
+
+        $count = Application::updateBulkMode($targetMode);
+        $modeLabel = $targetMode === 'live' ? 'LIVE (Produksi)' : 'SANDBOX (Uji Coba)';
+
+        Session::setFlash('success', "Berhasil mengubah {$count} platform ke mode {$modeLabel}!");
         $this->redirect('applications');
     }
 
@@ -222,31 +227,46 @@ class ApplicationController extends Controller {
         $this->redirect('applications');
     }
 
+    public function quickSetMode(Request $request, $id): void {
+        $this->validateCsrf($request);
+        $app = Application::find($id);
+        if (!$app) {
+            Session::setFlash('danger', 'Platform tidak ditemukan.');
+            $this->redirect('applications');
+            return;
+        }
+        $mode = trim($request->post('mode', 'sandbox')) === 'live' ? 'live' : 'sandbox';
+        Application::update($id, ['mode' => $mode]);
+        $modeBadge = $mode === 'live' ? 'LIVE (Produksi)' : 'SANDBOX (Uji Coba)';
+        Session::setFlash('success', "Mode platform '{$app['app_name']}' berhasil diubah ke {$modeBadge}!");
+        $this->redirect('applications');
+    }
+
     public function quickSetGateway(Request $request, $id): void {
         $this->validateCsrf($request);
         $app = Application::find($id);
         if (!$app) {
-            $this->json(['status' => 'error', 'message' => 'Platform tidak ditemukan'], 404);
+            Session::setFlash('danger', 'Platform tidak ditemukan.');
+            $this->redirect('applications');
             return;
         }
         $gw = trim($request->post('gateway', 'default'));
-        $targetMode = trim($request->post('mode', 'default'));
-
+        $target = trim($request->post('target', 'all'));
         if (in_array($gw, ['default', 'midtrans', 'duitku', 'doku'])) {
-            if ($targetMode === 'live') {
-                Application::update($id, ['gateway_live' => $gw]);
-                $msg = "Gateway Live platform '{$app['app_name']}' berhasil diubah ke " . strtoupper($gw);
-            } elseif ($targetMode === 'sandbox') {
-                Application::update($id, ['gateway_sandbox' => $gw]);
-                $msg = "Gateway Sandbox platform '{$app['app_name']}' berhasil diubah ke " . strtoupper($gw);
+            $data = [];
+            $gwName = strtoupper($gw);
+            if ($target === 'live') {
+                $data['gateway_live'] = $gw;
+                $label = "Gateway Live untuk '{$app['app_name']}' diubah ke {$gwName}!";
+            } elseif ($target === 'sandbox') {
+                $data['gateway_sandbox'] = $gw;
+                $label = "Gateway Sandbox untuk '{$app['app_name']}' diubah ke {$gwName}!";
             } else {
-                Application::update($id, ['default_gateway' => $gw]);
-                $msg = "Gateway default platform '{$app['app_name']}' berhasil diubah ke " . strtoupper($gw);
+                $data['default_gateway'] = $gw;
+                $label = "Gateway platform '{$app['app_name']}' diubah ke {$gwName}!";
             }
-
-            Session::setFlash('success', $msg);
-            $this->redirect('applications');
-            return;
+            Application::update($id, $data);
+            Session::setFlash('success', $label);
         }
         $this->redirect('applications');
     }

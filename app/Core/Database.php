@@ -33,7 +33,8 @@ class Database {
      */
     private static function schemaColumns(): array {
         return [
-            ['applications', 'gateway_live',    "VARCHAR(50) NOT NULL DEFAULT 'default' AFTER `default_gateway`"],
+            ['applications', 'mode',            "ENUM('sandbox','live') NOT NULL DEFAULT 'sandbox' AFTER `default_gateway`"],
+            ['applications', 'gateway_live',    "VARCHAR(50) NOT NULL DEFAULT 'default' AFTER `mode`"],
             ['applications', 'gateway_sandbox', "VARCHAR(50) NOT NULL DEFAULT 'default' AFTER `gateway_live`"],
             ['transactions', 'return_url',      "VARCHAR(255) DEFAULT NULL AFTER `fee`"],
             ['transactions', 'webhook_url',     "VARCHAR(255) DEFAULT NULL AFTER `return_url`"],

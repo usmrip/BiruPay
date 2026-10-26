@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS `applications` (
   `webhook_url` VARCHAR(255) DEFAULT NULL,
   `return_url` VARCHAR(255) DEFAULT NULL,
   `default_gateway` VARCHAR(50) DEFAULT 'default',
+  `mode` ENUM('sandbox', 'live') NOT NULL DEFAULT 'sandbox',
   `gateway_live` VARCHAR(50) NOT NULL DEFAULT 'default',
   `gateway_sandbox` VARCHAR(50) NOT NULL DEFAULT 'default',
   `timezone` VARCHAR(50) NOT NULL DEFAULT 'UTC',

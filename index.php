@@ -94,10 +94,12 @@ Router::get('/applications', [ApplicationController::class, 'index'], ['auth']);
 Router::get('/applications/create', [ApplicationController::class, 'create'], ['auth']);
 Router::post('/applications', [ApplicationController::class, 'store'], ['auth']);
 Router::post('/applications/bulk-gateway', [ApplicationController::class, 'bulkGateway'], ['auth']);
+Router::post('/applications/bulk-mode', [ApplicationController::class, 'bulkMode'], ['auth']);
 Router::post('/applications/global-default', [ApplicationController::class, 'setGlobalDefaultGateway'], ['auth']);
 Router::get('/applications/{id}/edit', [ApplicationController::class, 'edit'], ['auth']);
 Router::post('/applications/{id}', [ApplicationController::class, 'update'], ['auth']);
 Router::post('/applications/{id}/quick-gateway', [ApplicationController::class, 'quickSetGateway'], ['auth']);
+Router::post('/applications/{id}/quick-mode', [ApplicationController::class, 'quickSetMode'], ['auth']);
 Router::post('/applications/{id}/regenerate-key', [ApplicationController::class, 'regenerateKey'], ['auth']);
 Router::post('/applications/{id}/delete', [ApplicationController::class, 'delete'], ['auth']);
 

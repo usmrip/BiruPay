@@ -18,36 +18,52 @@ class Application extends Model {
         return self::findBy('app_code', $code);
     }
 
-    public static function updateBulkGateway(string $gateway, string $mode = 'all'): int {
+    public static function updateBulkGateway(string $gateway): int {
         $pdo = \App\Core\Database::getConnection();
         if (!$pdo) return 0;
 
-        if ($mode === 'live') {
-            $stmt = $pdo->prepare("UPDATE `applications` SET `gateway_live` = ?");
-            $stmt->execute([$gateway]);
-        } elseif ($mode === 'sandbox') {
-            $stmt = $pdo->prepare("UPDATE `applications` SET `gateway_sandbox` = ?");
-            $stmt->execute([$gateway]);
-        } else {
-            $stmt = $pdo->prepare("UPDATE `applications` SET `default_gateway` = ?, `gateway_live` = ?, `gateway_sandbox` = ?");
-            $stmt->execute([$gateway, $gateway, $gateway]);
-        }
+        $stmt = $pdo->prepare("UPDATE `applications` SET `default_gateway` = ?");
+        $stmt->execute([$gateway]);
+        return $stmt->rowCount();
+    }
+
+    public static function updateBulkMode(string $mode): int {
+        $pdo = \App\Core\Database::getConnection();
+        if (!$pdo) return 0;
+
+        $mode = ($mode === 'live') ? 'live' : 'sandbox';
+        $stmt = $pdo->prepare("UPDATE `applications` SET `mode` = ?");
+        $stmt->execute([$mode]);
         return $stmt->rowCount();
     }
 
     /**
-     * Tentukan gateway untuk platform berdasarkan mode transaksi.
-     * Jika client tidak menyebutkan mode, default adalah 'sandbox'.
-     * Urutan resolusi:
-     * 1. Mode Live    => gateway_live platform -> default_gateway platform -> default global sistem -> gateway aktif pertama.
-     * 2. Mode Sandbox => gateway_sandbox platform -> default_gateway platform -> default global sistem -> gateway aktif pertama.
+     * Tentukan mode transaksi (live vs sandbox).
+     * Jika client menyebutkan mode yang valid, gunakan mode client.
+     * Jika tidak disebutkan di client, gunakan mode platform (default: sandbox).
+     */
+    public static function resolveMode(array $app, ?string $clientMode = null): string {
+        if (!empty($clientMode)) {
+            $normalized = GatewayConfig::normalizeMode($clientMode);
+            if ($normalized !== null) {
+                return $normalized;
+            }
+        }
+        $appMode = GatewayConfig::normalizeMode($app['mode'] ?? 'sandbox', 'sandbox');
+        return $appMode ?: 'sandbox';
+    }
+
+    /**
+     * Tentukan gateway untuk platform.
+     * Urutan: gateway khusus mode (gateway_live / gateway_sandbox) -> default_gateway
+     * platform -> default global -> gateway aktif pertama.
      */
     public static function resolveGateway(array $app, ?string $mode = null): string {
-        $mode = GatewayConfig::normalizeMode($mode, 'sandbox');
+        $mode = $mode ? GatewayConfig::normalizeMode($mode, 'sandbox') : self::resolveMode($app);
         $candidates = [];
         if ($mode === 'live') {
             $candidates[] = $app['gateway_live'] ?? 'default';
-        } else {
+        } elseif ($mode === 'sandbox') {
             $candidates[] = $app['gateway_sandbox'] ?? 'default';
         }
         $candidates[] = $app['default_gateway'] ?? 'default';
@@ -59,7 +75,7 @@ class Application extends Model {
         }
 
         $globalDefault = Setting::get('default_gateway', '');
-        if (!empty($globalDefault) && in_array($globalDefault, ['midtrans', 'duitku', 'doku'], true)) {
+        if (!empty($globalDefault) && in_array($globalDefault, ['midtrans', 'duitku', 'doku'])) {
             return $globalDefault;
         }
 

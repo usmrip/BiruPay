@@ -48,13 +48,19 @@ class ApiController extends Controller {
         $gatewayChoice = strtolower(trim((string) $request->input('gateway', '')));
         $itemDetails   = $request->input('item_details', []);
         $itemName      = trim((string) $request->input('item_name', 'Pembayaran Layanan ' . $app['app_name']));
-        $mode = GatewayConfig::normalizeMode($request->input('mode', ''), 'sandbox');
-        if ($mode === null) {
-            $this->json([
-                'status'  => 'error',
-                'message' => "Parameter mode tidak valid. Gunakan 'sandbox' atau 'live'."
-            ], 422);
-            return;
+        $rawMode = $request->input('mode');
+        if ($rawMode !== null && trim((string) $rawMode) !== '') {
+            $mode = GatewayConfig::normalizeMode($rawMode);
+            if ($mode === null) {
+                $this->json([
+                    'status'  => 'error',
+                    'message' => "Parameter mode tidak valid. Gunakan 'sandbox' atau 'live'."
+                ], 422);
+                return;
+            }
+        } else {
+            // Jika di client tidak disebutkan maka default adalah sandbox (atau mengikuti mode platform)
+            $mode = Application::resolveMode($app);
         }
         $returnUrlCustom  = trim((string) $request->input('return_url', ''));
         $webhookUrlCustom = trim((string) $request->input('webhook_url', ''));
@@ -218,7 +224,7 @@ class ApiController extends Controller {
             $this->json([
                 'status' => 'error',
                 'message' => $errMsg
-            ], 422);
+            ], 502);
             return;
         }
 

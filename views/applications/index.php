@@ -4,20 +4,25 @@ use App\Core\View;
 
 <!-- Action Bar & Gateway Controls -->
 <div class="row align-items-center mb-4 g-3">
-    <div class="col-md-5">
+    <div class="col-md-4">
         <h5 class="fw-bold mb-0">Platform & Aplikasi Biru</h5>
-        <small class="text-muted">Kelola platform Biru, API Key, serta penentuan payment gateway per platform atau masal</small>
+        <small class="text-muted">Kelola platform Biru, mode (Live/Sandbox), serta penentuan gateway pembayaran</small>
     </div>
-    <div class="col-md-7 d-flex flex-wrap justify-content-md-end gap-2">
+    <div class="col-md-8 d-flex flex-wrap justify-content-md-end gap-2">
         <!-- Global Gateway Indicator & Change Modal -->
         <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalGlobalGateway">
             <i class="bi bi-globe me-1"></i> Default Sistem: 
             <span class="badge bg-primary text-uppercase"><?= View::escape($globalDefaultGateway ?? 'duitku') ?></span>
         </button>
 
+        <!-- Bulk Mode Assignment Button -->
+        <button type="button" class="btn btn-outline-warning text-dark" data-bs-toggle="modal" data-bs-target="#modalBulkMode">
+            <i class="bi bi-toggle2-on me-1"></i> Mode Masal
+        </button>
+
         <!-- Bulk Gateway Assignment Button -->
         <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalBulkGateway">
-            <i class="bi bi-stack me-1"></i> Terapkan Gateway Masal
+            <i class="bi bi-stack me-1"></i> Gateway Masal
         </button>
 
         <!-- Create Application Button -->
@@ -33,7 +38,8 @@ use App\Core\View;
             <thead>
                 <tr>
                     <th>Kode & Nama Platform</th>
-                    <th style="min-width: 220px;">Gateway Sandbox & Live</th>
+                    <th>Mode Platform</th>
+                    <th>Payment Gateway</th>
                     <th>API Key (Secret)</th>
                     <th>Webhook Callback URL</th>
                     <th>Total Trx</th>
@@ -44,13 +50,19 @@ use App\Core\View;
             <tbody>
                 <?php if (empty($applications)): ?>
                     <tr>
-                        <td colspan="7" class="text-center py-5 text-muted">
+                        <td colspan="8" class="text-center py-5 text-muted">
                             <i class="bi bi-grid-3x3-gap display-6 d-block mb-2 text-secondary opacity-50"></i>
                             Belum ada platform atau aplikasi yang didaftarkan.
                         </td>
                     </tr>
                 <?php else: ?>
-                    <?php foreach ($applications as $app): ?>
+                    <?php foreach ($applications as $app): 
+                        $mode = $app['resolved_mode'] ?? 'sandbox';
+                        $isLive = ($mode === 'live');
+                        $effGw = $app['effective_gateway'] ?? 'duitku';
+                        $gwLive = $app['gateway_live'] ?? 'default';
+                        $gwSand = $app['gateway_sandbox'] ?? 'default';
+                    ?>
                         <tr>
                             <td>
                                 <div class="fw-bold text-dark fs-6"><?= View::escape($app['app_name']) ?></div>
@@ -58,118 +70,143 @@ use App\Core\View;
                                 <span class="badge bg-light text-dark border ms-1"><i class="bi bi-clock me-1"></i><?= View::escape($app['timezone'] ?? 'UTC') ?></span>
                             </td>
                             <td>
-                                <!-- Sandbox Mode Gateway -->
-                                <div class="d-flex align-items-center justify-content-between gap-1 mb-1">
-                                    <span class="badge bg-warning-subtle text-warning-emphasis font-monospace" style="font-size: 0.7rem;" title="Default jika client tidak mengirim parameter mode">SANDBOX</span>
-                                    <div class="dropdown">
-                                        <button class="btn btn-xs py-0 px-2 btn-outline-secondary dropdown-toggle d-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.75rem;">
-                                            <?php 
-                                            $sbVal = $app['gateway_sandbox'] ?? 'default';
-                                            $effSb = $sbVal !== 'default' ? strtoupper($sbVal) : ('Default (' . strtoupper($app['effective_sandbox'] ?? 'duitku') . ')');
-                                            ?>
-                                            <span class="text-dark fw-semibold"><?= View::escape($effSb) ?></span>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                                            <li><h6 class="dropdown-header small">Gateway Mode Sandbox (Testing)</h6></li>
-                                            <li>
-                                                <form action="<?= View::url('applications/' . $app['id'] . '/quick-gateway') ?>" method="POST">
-                                                    <?= View::csrfField() ?>
-                                                    <input type="hidden" name="mode" value="sandbox">
-                                                    <input type="hidden" name="gateway" value="default">
-                                                    <button type="submit" class="dropdown-item small <?= ($app['gateway_sandbox'] ?? 'default') === 'default' ? 'active' : '' ?>">
-                                                        <i class="bi bi-globe me-2"></i> Default Sistem (<?= strtoupper($globalDefaultGateway ?? 'duitku') ?>)
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            <li>
-                                                <form action="<?= View::url('applications/' . $app['id'] . '/quick-gateway') ?>" method="POST">
-                                                    <?= View::csrfField() ?>
-                                                    <input type="hidden" name="mode" value="sandbox">
-                                                    <input type="hidden" name="gateway" value="duitku">
-                                                    <button type="submit" class="dropdown-item small <?= ($app['gateway_sandbox'] ?? '') === 'duitku' ? 'active' : '' ?>">
-                                                        <i class="bi bi-wallet2 me-2 text-info"></i> Duitku (Duitku Pop)
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            <li>
-                                                <form action="<?= View::url('applications/' . $app['id'] . '/quick-gateway') ?>" method="POST">
-                                                    <?= View::csrfField() ?>
-                                                    <input type="hidden" name="mode" value="sandbox">
-                                                    <input type="hidden" name="gateway" value="midtrans">
-                                                    <button type="submit" class="dropdown-item small <?= ($app['gateway_sandbox'] ?? '') === 'midtrans' ? 'active' : '' ?>">
-                                                        <i class="bi bi-credit-card me-2 text-primary"></i> Midtrans (Snap)
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            <li>
-                                                <form action="<?= View::url('applications/' . $app['id'] . '/quick-gateway') ?>" method="POST">
-                                                    <?= View::csrfField() ?>
-                                                    <input type="hidden" name="mode" value="sandbox">
-                                                    <input type="hidden" name="gateway" value="doku">
-                                                    <button type="submit" class="dropdown-item small <?= ($app['gateway_sandbox'] ?? '') === 'doku' ? 'active' : '' ?>">
-                                                        <i class="bi bi-shield-check me-2 text-danger"></i> DOKU Checkout
-                                                    </button>
-                                                </form>
-                                            </li>
-                                        </ul>
-                                    </div>
+                                <!-- Quick Mode Dropdown / Toggle -->
+                                <div class="dropdown">
+                                    <button class="btn btn-sm dropdown-toggle d-flex align-items-center gap-1 <?= $isLive ? 'btn-success' : 'btn-warning text-dark' ?>" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Klik untuk ubah Mode">
+                                        <?php if ($isLive): ?>
+                                            <i class="bi bi-broadcast"></i> <span class="fw-bold">LIVE</span>
+                                        <?php else: ?>
+                                            <i class="bi bi-cone-striped"></i> <span class="fw-bold">SANDBOX</span>
+                                        <?php endif; ?>
+                                    </button>
+                                    <ul class="dropdown-menu shadow-sm">
+                                        <li><h6 class="dropdown-header small">Pilih Mode Platform</h6></li>
+                                        <li>
+                                            <form action="<?= View::url('applications/' . $app['id'] . '/quick-mode') ?>" method="POST">
+                                                <?= View::csrfField() ?>
+                                                <input type="hidden" name="mode" value="sandbox">
+                                                <button type="submit" class="dropdown-item small d-flex align-items-center gap-2 <?= !$isLive ? 'active' : '' ?>">
+                                                    <span class="badge bg-warning text-dark"><i class="bi bi-cone-striped me-1"></i>SANDBOX</span>
+                                                    <span>Uji Coba (Default)</span>
+                                                </button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form action="<?= View::url('applications/' . $app['id'] . '/quick-mode') ?>" method="POST">
+                                                <?= View::csrfField() ?>
+                                                <input type="hidden" name="mode" value="live">
+                                                <button type="submit" class="dropdown-item small d-flex align-items-center gap-2 <?= $isLive ? 'active' : '' ?>">
+                                                    <span class="badge bg-success text-white"><i class="bi bi-broadcast me-1"></i>LIVE</span>
+                                                    <span>Produksi Riil</span>
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
                                 </div>
-
-                                <!-- Live Mode Gateway -->
-                                <div class="d-flex align-items-center justify-content-between gap-1">
-                                    <span class="badge bg-success-subtle text-success-emphasis font-monospace" style="font-size: 0.7rem;" title="Aktif saat client mengirimkan mode: 'live'">LIVE</span>
-                                    <div class="dropdown">
-                                        <button class="btn btn-xs py-0 px-2 btn-outline-secondary dropdown-toggle d-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.75rem;">
-                                            <?php 
-                                            $liveVal = $app['gateway_live'] ?? 'default';
-                                            $effLive = $liveVal !== 'default' ? strtoupper($liveVal) : ('Default (' . strtoupper($app['effective_live'] ?? 'duitku') . ')');
-                                            ?>
-                                            <span class="text-dark fw-semibold"><?= View::escape($effLive) ?></span>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                                            <li><h6 class="dropdown-header small">Gateway Mode Live (Production)</h6></li>
-                                            <li>
-                                                <form action="<?= View::url('applications/' . $app['id'] . '/quick-gateway') ?>" method="POST">
-                                                    <?= View::csrfField() ?>
-                                                    <input type="hidden" name="mode" value="live">
-                                                    <input type="hidden" name="gateway" value="default">
-                                                    <button type="submit" class="dropdown-item small <?= ($app['gateway_live'] ?? 'default') === 'default' ? 'active' : '' ?>">
-                                                        <i class="bi bi-globe me-2"></i> Default Sistem (<?= strtoupper($globalDefaultGateway ?? 'duitku') ?>)
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            <li>
-                                                <form action="<?= View::url('applications/' . $app['id'] . '/quick-gateway') ?>" method="POST">
-                                                    <?= View::csrfField() ?>
-                                                    <input type="hidden" name="mode" value="live">
-                                                    <input type="hidden" name="gateway" value="duitku">
-                                                    <button type="submit" class="dropdown-item small <?= ($app['gateway_live'] ?? '') === 'duitku' ? 'active' : '' ?>">
-                                                        <i class="bi bi-wallet2 me-2 text-info"></i> Duitku (Duitku Pop)
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            <li>
-                                                <form action="<?= View::url('applications/' . $app['id'] . '/quick-gateway') ?>" method="POST">
-                                                    <?= View::csrfField() ?>
-                                                    <input type="hidden" name="mode" value="live">
-                                                    <input type="hidden" name="gateway" value="midtrans">
-                                                    <button type="submit" class="dropdown-item small <?= ($app['gateway_live'] ?? '') === 'midtrans' ? 'active' : '' ?>">
-                                                        <i class="bi bi-credit-card me-2 text-primary"></i> Midtrans (Snap)
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            <li>
-                                                <form action="<?= View::url('applications/' . $app['id'] . '/quick-gateway') ?>" method="POST">
-                                                    <?= View::csrfField() ?>
-                                                    <input type="hidden" name="mode" value="live">
-                                                    <input type="hidden" name="gateway" value="doku">
-                                                    <button type="submit" class="dropdown-item small <?= ($app['gateway_live'] ?? '') === 'doku' ? 'active' : '' ?>">
-                                                        <i class="bi bi-shield-check me-2 text-danger"></i> DOKU Checkout
-                                                    </button>
-                                                </form>
-                                            </li>
-                                        </ul>
-                                    </div>
+                            </td>
+                            <td>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-light border dropdown-toggle d-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <?php if ($effGw === 'duitku'): ?>
+                                            <span class="badge bg-info text-dark"><i class="bi bi-wallet2 me-1"></i> Duitku</span>
+                                        <?php elseif ($effGw === 'midtrans'): ?>
+                                            <span class="badge bg-primary"><i class="bi bi-credit-card me-1"></i> Midtrans</span>
+                                        <?php elseif ($effGw === 'doku'): ?>
+                                            <span class="badge bg-danger"><i class="bi bi-shield-check me-1"></i> DOKU</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-light text-muted border">Default (<?= strtoupper($globalDefaultGateway ?? 'duitku') ?>)</span>
+                                        <?php endif; ?>
+                                    </button>
+                                    <ul class="dropdown-menu shadow-sm" style="min-width: 260px;">
+                                        <li><h6 class="dropdown-header small">Gateway Khusus Mode LIVE:</h6></li>
+                                        <li>
+                                            <form action="<?= View::url('applications/' . $app['id'] . '/quick-gateway') ?>" method="POST">
+                                                <?= View::csrfField() ?>
+                                                <input type="hidden" name="target" value="live">
+                                                <input type="hidden" name="gateway" value="default">
+                                                <button type="submit" class="dropdown-item small <?= $gwLive === 'default' ? 'active' : '' ?>">
+                                                    <i class="bi bi-globe me-2"></i> Live: Default Sistem (<?= strtoupper($globalDefaultGateway ?? 'duitku') ?>)
+                                                </button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form action="<?= View::url('applications/' . $app['id'] . '/quick-gateway') ?>" method="POST">
+                                                <?= View::csrfField() ?>
+                                                <input type="hidden" name="target" value="live">
+                                                <input type="hidden" name="gateway" value="duitku">
+                                                <button type="submit" class="dropdown-item small <?= $gwLive === 'duitku' ? 'active' : '' ?>">
+                                                    <i class="bi bi-wallet2 me-2 text-info"></i> Live: Duitku (Duitku Pop)
+                                                </button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form action="<?= View::url('applications/' . $app['id'] . '/quick-gateway') ?>" method="POST">
+                                                <?= View::csrfField() ?>
+                                                <input type="hidden" name="target" value="live">
+                                                <input type="hidden" name="gateway" value="midtrans">
+                                                <button type="submit" class="dropdown-item small <?= $gwLive === 'midtrans' ? 'active' : '' ?>">
+                                                    <i class="bi bi-credit-card me-2 text-primary"></i> Live: Midtrans (Snap Popup)
+                                                </button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form action="<?= View::url('applications/' . $app['id'] . '/quick-gateway') ?>" method="POST">
+                                                <?= View::csrfField() ?>
+                                                <input type="hidden" name="target" value="live">
+                                                <input type="hidden" name="gateway" value="doku">
+                                                <button type="submit" class="dropdown-item small <?= $gwLive === 'doku' ? 'active' : '' ?>">
+                                                    <i class="bi bi-shield-check me-2 text-danger"></i> Live: DOKU Checkout
+                                                </button>
+                                            </form>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><h6 class="dropdown-header small">Gateway Khusus Mode SANDBOX:</h6></li>
+                                        <li>
+                                            <form action="<?= View::url('applications/' . $app['id'] . '/quick-gateway') ?>" method="POST">
+                                                <?= View::csrfField() ?>
+                                                <input type="hidden" name="target" value="sandbox">
+                                                <input type="hidden" name="gateway" value="default">
+                                                <button type="submit" class="dropdown-item small <?= $gwSand === 'default' ? 'active' : '' ?>">
+                                                    <i class="bi bi-globe me-2"></i> Sandbox: Default Sistem (<?= strtoupper($globalDefaultGateway ?? 'duitku') ?>)
+                                                </button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form action="<?= View::url('applications/' . $app['id'] . '/quick-gateway') ?>" method="POST">
+                                                <?= View::csrfField() ?>
+                                                <input type="hidden" name="target" value="sandbox">
+                                                <input type="hidden" name="gateway" value="duitku">
+                                                <button type="submit" class="dropdown-item small <?= $gwSand === 'duitku' ? 'active' : '' ?>">
+                                                    <i class="bi bi-wallet2 me-2 text-info"></i> Sandbox: Duitku (Duitku Pop)
+                                                </button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form action="<?= View::url('applications/' . $app['id'] . '/quick-gateway') ?>" method="POST">
+                                                <?= View::csrfField() ?>
+                                                <input type="hidden" name="target" value="sandbox">
+                                                <input type="hidden" name="gateway" value="midtrans">
+                                                <button type="submit" class="dropdown-item small <?= $gwSand === 'midtrans' ? 'active' : '' ?>">
+                                                    <i class="bi bi-credit-card me-2 text-primary"></i> Sandbox: Midtrans (Snap Popup)
+                                                </button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form action="<?= View::url('applications/' . $app['id'] . '/quick-gateway') ?>" method="POST">
+                                                <?= View::csrfField() ?>
+                                                <input type="hidden" name="target" value="sandbox">
+                                                <input type="hidden" name="gateway" value="doku">
+                                                <button type="submit" class="dropdown-item small <?= $gwSand === 'doku' ? 'active' : '' ?>">
+                                                    <i class="bi bi-shield-check me-2 text-danger"></i> Sandbox: DOKU Checkout
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="text-muted mt-1" style="font-size: 11px;">
+                                    <span class="text-success"><i class="bi bi-broadcast"></i> <?= strtoupper($app['live_gateway'] ?? 'default') ?></span>
+                                    <span class="mx-1 text-secondary">|</span>
+                                    <span class="text-warning-emphasis"><i class="bi bi-cone-striped"></i> <?= strtoupper($app['sandbox_gateway'] ?? 'default') ?></span>
                                 </div>
                             </td>
                             <td>
@@ -242,28 +279,6 @@ use App\Core\View;
                         Gunakan fitur ini untuk <strong>mengubah payment gateway seluruh platform atau aplikasi terdaftar sekaligus</strong> dengan 1 klik.
                     </p>
 
-                    <label class="form-label small fw-bold">Terapkan Pada Mode:</label>
-                    <div class="row g-2 mb-3">
-                        <div class="col-4">
-                            <label class="p-2 border rounded-2 d-flex align-items-center gap-2 cursor-pointer bg-light w-100 small">
-                                <input class="form-check-input mt-0" type="radio" name="target_mode" value="all" checked>
-                                <span class="fw-semibold">Semua Mode</span>
-                            </label>
-                        </div>
-                        <div class="col-4">
-                            <label class="p-2 border rounded-2 d-flex align-items-center gap-2 cursor-pointer bg-light w-100 small">
-                                <input class="form-check-input mt-0" type="radio" name="target_mode" value="sandbox">
-                                <span class="fw-semibold text-warning-emphasis">Sandbox</span>
-                            </label>
-                        </div>
-                        <div class="col-4">
-                            <label class="p-2 border rounded-2 d-flex align-items-center gap-2 cursor-pointer bg-light w-100 small">
-                                <input class="form-check-input mt-0" type="radio" name="target_mode" value="live">
-                                <span class="fw-semibold text-success">Live</span>
-                            </label>
-                        </div>
-                    </div>
-
                     <label class="form-label small fw-bold">Pilih Gateway untuk Diterapkan ke SEMUA Platform:</label>
                     <div class="d-flex flex-column gap-2 mb-3">
                         <label class="p-3 border rounded-3 d-flex align-items-center gap-3 cursor-pointer bg-light">
@@ -307,6 +322,65 @@ use App\Core\View;
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-primary btn-sm px-3 fw-bold">
                         <i class="bi bi-check-lg me-1"></i> Terapkan ke Semua Platform
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL: PENENTUAN MODE MASAL (BULK MODE ASSIGNMENT)             -->
+<!-- ============================================================== -->
+<div class="modal fade" id="modalBulkMode" tabindex="-1" aria-labelledby="modalBulkModeLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title fw-bold" id="modalBulkModeLabel">
+                    <i class="bi bi-toggle2-on me-2"></i> Tentukan Mode Masal untuk Semua Platform
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="<?= View::url('applications/bulk-mode') ?>" method="POST">
+                <?= View::csrfField() ?>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">
+                        Gunakan fitur ini untuk <strong>mengubah mode (Sandbox vs Live) seluruh platform terdaftar sekaligus</strong> dengan 1 klik.
+                    </p>
+
+                    <label class="form-label small fw-bold">Pilih Mode untuk Diterapkan ke SEMUA Platform:</label>
+                    <div class="d-flex flex-column gap-2 mb-3">
+                        <label class="p-3 border rounded-3 d-flex align-items-center gap-3 cursor-pointer bg-light">
+                            <input class="form-check-input mt-0" type="radio" name="target_mode" value="sandbox" checked>
+                            <div>
+                                <div class="fw-bold text-dark d-flex align-items-center gap-1">
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-cone-striped me-1"></i>SANDBOX</span>
+                                    <span>(Uji Coba / Testing)</span>
+                                </div>
+                                <small class="text-muted">Semua platform akan beralih ke mode simulasi transaksi (tanpa uang nyata)</small>
+                            </div>
+                        </label>
+
+                        <label class="p-3 border rounded-3 d-flex align-items-center gap-3 cursor-pointer bg-light">
+                            <input class="form-check-input mt-0" type="radio" name="target_mode" value="live">
+                            <div>
+                                <div class="fw-bold text-dark d-flex align-items-center gap-1">
+                                    <span class="badge bg-success text-white"><i class="bi bi-broadcast me-1"></i>LIVE</span>
+                                    <span>(Produksi Riil)</span>
+                                </div>
+                                <small class="text-muted">Semua platform akan beralih ke mode pembayaran operasional riil dengan uang sungguhan</small>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="alert alert-warning py-2 small mb-0">
+                        <i class="bi bi-exclamation-triangle me-1"></i> Mode Live akan menggunakan kredensial produksi dan payment gateway live yang dipilih di masing-masing platform.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-warning btn-sm px-3 fw-bold text-dark">
+                        <i class="bi bi-check-lg me-1"></i> Terapkan Mode ke Semua Platform
                     </button>
                 </div>
             </form>

@@ -45,58 +45,64 @@ $action = $isEdit ? View::url('applications/' . $application['id']) : View::url(
                         </div>
                     <?php endif; ?>
 
-                    <!-- Gateway Configuration per Mode (Sandbox & Live) -->
-                    <div class="card bg-light border-0 rounded-3 p-3 mb-3">
-                        <div class="d-flex align-items-center mb-2">
-                            <i class="bi bi-toggles text-primary fs-5 me-2"></i>
-                            <h6 class="mb-0 fw-bold">Konfigurasi Gateway per Mode Transaksi</h6>
-                        </div>
-                        <p class="text-muted small mb-3">
-                            Tentukan payment gateway yang digunakan saat aplikasi memproses pembayaran pada mode <strong>Live (Production)</strong> atau <strong>Sandbox (Testing)</strong>. Jika client tidak menentukan mode saat request, sistem secara default akan memilih gateway mode <strong>Sandbox</strong>.
-                        </p>
-
-                        <div class="row g-3">
-                            <!-- Gateway Mode Sandbox -->
-                            <div class="col-md-6">
-                                <div class="p-3 bg-white border rounded-3 h-100 shadow-sm">
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <label class="form-label small fw-bold mb-0 text-warning-emphasis">
-                                            <i class="bi bi-bug me-1 text-warning"></i> Gateway Sandbox (Testing)
-                                        </label>
-                                        <span class="badge bg-warning-subtle text-warning-emphasis font-monospace small">Default Client</span>
-                                    </div>
-                                    <select name="gateway_sandbox" class="form-select form-select-sm mb-2">
-                                        <option value="default" <?= ($application['gateway_sandbox'] ?? 'default') === 'default' ? 'selected' : '' ?>>
-                                            🌐 Default Sistem (<?= strtoupper($globalDefaultGateway ?? 'DUITKU') ?>)
-                                        </option>
-                                        <option value="duitku" <?= ($application['gateway_sandbox'] ?? '') === 'duitku' ? 'selected' : '' ?>>
-                                            💳 Duitku (Duitku Pop)
-                                        </option>
-                                        <option value="midtrans" <?= ($application['gateway_sandbox'] ?? '') === 'midtrans' ? 'selected' : '' ?>>
-                                            💳 Midtrans (Snap Popup)
-                                        </option>
-                                        <option value="doku" <?= ($application['gateway_sandbox'] ?? '') === 'doku' ? 'selected' : '' ?>>
-                                            💳 DOKU Checkout
-                                        </option>
-                                    </select>
-                                    <small class="text-muted d-block lh-sm" style="font-size: 0.8rem;">
-                                        Dipakai saat request berisi <code>mode: 'sandbox'</code> atau ketika mode tidak disertakan client.
-                                    </small>
+                    <!-- Konfigurasi Mode & Payment Gateway Platform -->
+                    <div class="card mb-4 border-0 shadow-sm" style="background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%); border: 1px solid #e2e8f0 !important; border-radius: 14px;">
+                        <div class="card-body p-3 p-md-4">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div>
+                                    <h6 class="fw-bold mb-1 text-dark"><i class="bi bi-toggles2 text-primary me-2"></i>Mode & Gateway Platform</h6>
+                                    <small class="text-muted">Pilih mode operasi platform ini dan gateway yang digunakan untuk masing-masing mode.</small>
                                 </div>
                             </div>
 
-                            <!-- Gateway Mode Live -->
-                            <div class="col-md-6">
-                                <div class="p-3 bg-white border rounded-3 h-100 shadow-sm">
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <label class="form-label small fw-bold mb-0 text-success">
-                                            <i class="bi bi-shield-check me-1 text-success"></i> Gateway Live (Production)
+                            <!-- Mode Selector -->
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-uppercase text-secondary" style="letter-spacing: 0.5px;">Mode Transaksi Platform</label>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="d-block p-3 rounded-3 border cursor-pointer position-relative <?= ($application['mode'] ?? 'sandbox') === 'sandbox' ? 'border-primary bg-primary-subtle bg-opacity-10' : 'bg-white' ?>" for="mode_sandbox" style="transition: all .15s ease;">
+                                            <div class="d-flex align-items-start gap-2">
+                                                <input class="form-check-input mt-1" type="radio" name="mode" id="mode_sandbox" value="sandbox" <?= ($application['mode'] ?? 'sandbox') === 'sandbox' ? 'checked' : '' ?>>
+                                                <div>
+                                                    <div class="fw-bold text-dark d-flex align-items-center gap-1">
+                                                        <span class="badge bg-warning text-dark"><i class="bi bi-cone-striped me-1"></i>SANDBOX</span>
+                                                        <span>(Uji Coba)</span>
+                                                    </div>
+                                                    <div class="small text-muted mt-1" style="font-size: 12px; line-height: 1.4;">
+                                                        Simulasi transaksi tanpa uang nyata. <strong>Default otomatis</strong> jika client/caller tidak menyebutkan parameter mode.
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </label>
-                                        <span class="badge bg-success-subtle text-success font-monospace small">Transaksi Riil</span>
                                     </div>
-                                    <select name="gateway_live" class="form-select form-select-sm mb-2">
+                                    <div class="col-md-6">
+                                        <label class="d-block p-3 rounded-3 border cursor-pointer position-relative <?= ($application['mode'] ?? '') === 'live' ? 'border-success bg-success-subtle bg-opacity-10' : 'bg-white' ?>" for="mode_live" style="transition: all .15s ease;">
+                                            <div class="d-flex align-items-start gap-2">
+                                                <input class="form-check-input mt-1" type="radio" name="mode" id="mode_live" value="live" <?= ($application['mode'] ?? '') === 'live' ? 'checked' : '' ?>>
+                                                <div>
+                                                    <div class="fw-bold text-dark d-flex align-items-center gap-1">
+                                                        <span class="badge bg-success text-white"><i class="bi bi-broadcast me-1"></i>LIVE</span>
+                                                        <span>(Produksi Riil)</span>
+                                                    </div>
+                                                    <div class="small text-muted mt-1" style="font-size: 12px; line-height: 1.4;">
+                                                        Operasional nyata dengan uang riil pelanggan menggunakan kredensial gateway produksi.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Per-Mode Gateway Selection -->
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold text-dark">
+                                        <i class="bi bi-broadcast text-success me-1"></i> Gateway saat Mode LIVE
+                                    </label>
+                                    <select name="gateway_live" class="form-select">
                                         <option value="default" <?= ($application['gateway_live'] ?? 'default') === 'default' ? 'selected' : '' ?>>
-                                            🌐 Default Sistem (<?= strtoupper($globalDefaultGateway ?? 'DUITKU') ?>)
+                                            🌐 Ikuti Default Sistem (<?= strtoupper($globalDefaultGateway ?? 'DUITKU') ?>)
                                         </option>
                                         <option value="duitku" <?= ($application['gateway_live'] ?? '') === 'duitku' ? 'selected' : '' ?>>
                                             💳 Duitku (Duitku Pop)
@@ -108,26 +114,50 @@ $action = $isEdit ? View::url('applications/' . $application['id']) : View::url(
                                             💳 DOKU Checkout
                                         </option>
                                     </select>
-                                    <small class="text-muted d-block lh-sm" style="font-size: 0.8rem;">
-                                        Dipakai saat client memproses transaksi riil dengan parameter <code>mode: 'live'</code>.
-                                    </small>
+                                    <small class="text-muted" style="font-size: 11.5px;">Gateway yang otomatis aktif jika transaksi dalam mode Live.</small>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold text-dark">
+                                        <i class="bi bi-cone-striped text-warning me-1"></i> Gateway saat Mode SANDBOX
+                                    </label>
+                                    <select name="gateway_sandbox" class="form-select">
+                                        <option value="default" <?= ($application['gateway_sandbox'] ?? 'default') === 'default' ? 'selected' : '' ?>>
+                                            🌐 Ikuti Default Sistem (<?= strtoupper($globalDefaultGateway ?? 'DUITKU') ?>)
+                                        </option>
+                                        <option value="duitku" <?= ($application['gateway_sandbox'] ?? '') === 'duitku' ? 'selected' : '' ?>>
+                                            💳 Duitku (Duitku Pop)
+                                        </option>
+                                        <option value="midtrans" <?= ($application['gateway_sandbox'] ?? '') === 'midtrans' ? 'selected' : '' ?>>
+                                            💳 Midtrans (Snap Popup)
+                                        </option>
+                                        <option value="doku" <?= ($application['gateway_sandbox'] ?? '') === 'doku' ? 'selected' : '' ?>>
+                                            💳 DOKU Checkout
+                                        </option>
+                                    </select>
+                                    <small class="text-muted" style="font-size: 11.5px;">Gateway yang otomatis aktif jika transaksi dalam mode Sandbox.</small>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Fallback / Gateway Default Platform -->
-                        <div class="mt-3 pt-2 border-top d-flex align-items-center justify-content-between flex-wrap gap-2">
-                            <label class="form-label small fw-semibold mb-0 text-muted">
-                                Gateway Cadangan / Fallback Platform:
-                            </label>
-                            <select name="default_gateway" class="form-select form-select-sm w-auto">
-                                <option value="default" <?= ($application['default_gateway'] ?? 'default') === 'default' ? 'selected' : '' ?>>
-                                    Default Sistem (<?= strtoupper($globalDefaultGateway ?? 'DUITKU') ?>)
-                                </option>
-                                <option value="duitku" <?= ($application['default_gateway'] ?? '') === 'duitku' ? 'selected' : '' ?>>Duitku</option>
-                                <option value="midtrans" <?= ($application['default_gateway'] ?? '') === 'midtrans' ? 'selected' : '' ?>>Midtrans</option>
-                                <option value="doku" <?= ($application['default_gateway'] ?? '') === 'doku' ? 'selected' : '' ?>>DOKU</option>
-                            </select>
+                            <!-- Fallback Gateway -->
+                            <div class="mt-3 pt-3 border-top">
+                                <div class="row align-items-center g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold text-muted mb-0">Gateway Cadangan / Default Platform</label>
+                                        <div class="small text-muted" style="font-size: 11px;">Digunakan jika opsi per-mode diset "Ikuti Default Sistem"</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <select name="default_gateway" class="form-select form-select-sm">
+                                            <option value="default" <?= ($application['default_gateway'] ?? 'default') === 'default' ? 'selected' : '' ?>>
+                                                🌐 Default Sistem (<?= strtoupper($globalDefaultGateway ?? 'DUITKU') ?>)
+                                            </option>
+                                            <option value="duitku" <?= ($application['default_gateway'] ?? '') === 'duitku' ? 'selected' : '' ?>>Duitku</option>
+                                            <option value="midtrans" <?= ($application['default_gateway'] ?? '') === 'midtrans' ? 'selected' : '' ?>>Midtrans</option>
+                                            <option value="doku" <?= ($application['default_gateway'] ?? '') === 'doku' ? 'selected' : '' ?>>DOKU</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

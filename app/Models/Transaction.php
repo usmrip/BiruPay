@@ -48,13 +48,20 @@ class Transaction extends Model {
         return $row ?: null;
     }
 
-    public static function findByOrderIdAndApp(string $orderId, int $appId): ?array {
+    public static function findByOrderIdAndApp(string $orderId, int $appId, ?string $mode = null): ?array {
         $pdo = Database::getConnection();
         if (!$pdo) return null;
 
-        $sql = "SELECT * FROM `transactions` WHERE `order_id` = ? AND `app_id` = ? ORDER BY id DESC LIMIT 1";
+        $sql = "SELECT * FROM `transactions` WHERE `order_id` = ? AND `app_id` = ?";
+        $params = [$orderId, $appId];
+        if ($mode !== null) {
+            $sql .= " AND `mode` = ?";
+            $params[] = $mode;
+        }
+        $sql .= " ORDER BY id DESC LIMIT 1";
+
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$orderId, $appId]);
+        $stmt->execute($params);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
     }

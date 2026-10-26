@@ -32,31 +32,13 @@ class PaymentController extends Controller {
         $app = Application::find($trx['app_id']);
         $activeGateways = GatewayConfig::getActiveGateways();
 
-        // Get frontend configs for active gateways
-        $gatewayConfigs = [];
-        foreach ($activeGateways as $gw) {
-            if ($gw['gateway_code'] === 'midtrans') {
-                $gatewayConfigs['midtrans'] = (new MidtransGateway($gw))->getFrontendConfig();
-            } elseif ($gw['gateway_code'] === 'duitku') {
-                $gatewayConfigs['duitku'] = (new DuitkuGateway($gw))->getFrontendConfig();
-            } elseif ($gw['gateway_code'] === 'doku') {
-                $gatewayConfigs['doku'] = (new DokuGateway($gw))->getFrontendConfig();
-            }
-        }
-
-        // Always ensure active transaction gateway config is available
+        // Konfigurasi frontend gateway sesuai gateway & mode (live/sandbox) transaksi
+        $trxMode = $trx['mode'] ?? 'sandbox';
         $activeGateway = $trx['gateway'] ?? 'midtrans';
-        if (!isset($gatewayConfigs[$activeGateway])) {
-            $specificGw = GatewayConfig::getByCode($activeGateway);
-            if ($specificGw) {
-                if ($activeGateway === 'midtrans') {
-                    $gatewayConfigs['midtrans'] = (new MidtransGateway($specificGw))->getFrontendConfig();
-                } elseif ($activeGateway === 'duitku') {
-                    $gatewayConfigs['duitku'] = (new DuitkuGateway($specificGw))->getFrontendConfig();
-                } elseif ($activeGateway === 'doku') {
-                    $gatewayConfigs['doku'] = (new DokuGateway($specificGw))->getFrontendConfig();
-                }
-            }
+        $gatewayConfigs = [];
+        $cfg = GatewayConfig::getByCode($activeGateway, $trxMode);
+        if ($cfg) {
+            $gatewayConfigs[$activeGateway] = $this->makeGateway($activeGateway, $cfg)->getFrontendConfig();
         }
 
         $this->render('payment.checkout', [
@@ -66,6 +48,14 @@ class PaymentController extends Controller {
             'gateways' => $activeGateways,
             'gatewayConfigs' => $gatewayConfigs,
         ], 'checkout');
+    }
+
+    private function makeGateway(string $code, ?array $config) {
+        return match ($code) {
+            'midtrans' => new MidtransGateway($config),
+            'duitku'   => new DuitkuGateway($config),
+            default    => new DokuGateway($config),
+        };
     }
 
     /**
@@ -102,33 +92,21 @@ class PaymentController extends Controller {
         ];
 
         $result = ['success' => false, 'message' => 'Gateway tidak didukung.'];
+        $trxMode = $trx['mode'] ?? 'sandbox';
 
-        if ($gateway === 'midtrans') {
-            $gw = new MidtransGateway();
+        if (in_array($gateway, ['midtrans', 'duitku', 'doku'], true)) {
+            $gw = $this->makeGateway($gateway, GatewayConfig::getByCode($gateway, $trxMode));
             $result = $gw->createPayment($params);
-            if ($result['success']) {
-                Transaction::update($trx['id'], [
-                    'gateway' => 'midtrans',
-                    'snap_token' => $result['snap_token']
-                ]);
-            }
-        } elseif ($gateway === 'duitku') {
-            $gw = new DuitkuGateway();
-            $result = $gw->createPayment($params);
-            if ($result['success']) {
-                Transaction::update($trx['id'], [
-                    'gateway' => 'duitku',
-                    'gateway_reference' => $result['reference']
-                ]);
-            }
-        } elseif ($gateway === 'doku') {
-            $gw = new DokuGateway();
-            $result = $gw->createPayment($params);
-            if ($result['success']) {
-                Transaction::update($trx['id'], [
-                    'gateway' => 'doku',
-                    'gateway_reference' => $result['trx_reference']
-                ]);
+            if (!empty($result['success'])) {
+                $update = ['gateway' => $gateway];
+                if ($gateway === 'midtrans') {
+                    $update['snap_token'] = $result['snap_token'];
+                } elseif ($gateway === 'duitku') {
+                    $update['gateway_reference'] = $result['reference'];
+                } else {
+                    $update['gateway_reference'] = $result['trx_reference'];
+                }
+                Transaction::update($trx['id'], $update);
             }
         }
 

@@ -6,6 +6,7 @@ use App\Core\Request;
 use App\Models\Transaction;
 use App\Models\Application;
 use App\Models\Log;
+use App\Models\GatewayConfig;
 use App\Gateways\MidtransGateway;
 use App\Gateways\DuitkuGateway;
 use App\Gateways\DokuGateway;
@@ -26,7 +27,7 @@ class WebhookController extends Controller {
 
         Log::info('webhook_midtrans', 'Midtrans webhook received', ['raw' => $request->rawBody()]);
 
-        $gateway = new MidtransGateway();
+        $gateway = new MidtransGateway($this->configFor('midtrans', $request->json()['order_id'] ?? ''));
         $result = $gateway->verifyWebhook($request);
 
         if (!$result['is_valid']) {
@@ -50,7 +51,7 @@ class WebhookController extends Controller {
 
         Log::info('webhook_duitku', 'Duitku webhook received', ['params' => $request->all(), 'raw' => $request->rawBody()]);
 
-        $gateway = new DuitkuGateway();
+        $gateway = new DuitkuGateway($this->configFor('duitku', $request->all()['merchantOrderId'] ?? ''));
         $result = $gateway->verifyWebhook($request);
 
         if (!$result['is_valid']) {
@@ -74,7 +75,7 @@ class WebhookController extends Controller {
 
         Log::info('webhook_doku', 'DOKU webhook received', ['raw' => $request->rawBody()]);
 
-        $gateway = new DokuGateway();
+        $gateway = new DokuGateway($this->configFor('doku', $request->json()['order']['invoice_number'] ?? ''));
         $result = $gateway->verifyWebhook($request);
 
         if (!$result['is_valid']) {
@@ -84,6 +85,19 @@ class WebhookController extends Controller {
         }
 
         $this->processWebhookResult($result, 'doku');
+    }
+
+    /**
+     * Pakai kredensial sesuai mode (live/sandbox) transaksi yang dinotifikasi,
+     * agar signature diverifikasi dengan key yang benar.
+     */
+    private function configFor(string $gatewayCode, $trxRef): ?array {
+        $mode = null;
+        if (!empty($trxRef)) {
+            $trx = Transaction::findByReference((string) $trxRef);
+            $mode = $trx['mode'] ?? null;
+        }
+        return GatewayConfig::getByCode($gatewayCode, $mode);
     }
 
     private function processWebhookResult(array $result, string $gatewayName): void {

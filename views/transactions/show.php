@@ -39,11 +39,16 @@ use App\Core\View;
                                 <td class="fs-5 fw-bold text-primary"><?= View::formatRupiah($trx['amount']) ?></td>
                             </tr>
                             <tr>
-                                <th class="bg-light text-secondary">Payment Gateway</th>
+                                <th class="bg-light text-secondary">Payment Gateway &amp; Mode</th>
                                 <td>
                                     <span class="badge bg-secondary-subtle text-secondary font-monospace text-uppercase fs-6">
                                         <?= View::escape($trx['gateway']) ?>
                                     </span>
+                                    <?php if (($trx['mode'] ?? 'sandbox') === 'live'): ?>
+                                        <span class="badge bg-success-subtle text-success border border-success font-monospace ms-2">Mode Live (Production)</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning font-monospace ms-2">Mode Sandbox (Testing)</span>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                             <tr>

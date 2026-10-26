@@ -20,9 +20,51 @@ class Database {
                 self::$connectionError = $e->getMessage();
                 return null;
             }
+
+            self::ensureSchema(self::$instance);
         }
 
         return self::$instance;
+    }
+
+    /**
+     * Kolom tambahan yang wajib ada. Dicek otomatis saat koneksi pertama,
+     * sehingga instalasi lama ter-update tanpa harus menjalankan migrate manual.
+     */
+    private static function schemaColumns(): array {
+        return [
+            ['applications', 'gateway_live',    "VARCHAR(50) NOT NULL DEFAULT 'default' AFTER `default_gateway`"],
+            ['applications', 'gateway_sandbox', "VARCHAR(50) NOT NULL DEFAULT 'default' AFTER `gateway_live`"],
+            ['transactions', 'return_url',      "VARCHAR(255) DEFAULT NULL AFTER `fee`"],
+            ['transactions', 'webhook_url',     "VARCHAR(255) DEFAULT NULL AFTER `return_url`"],
+            ['transactions', 'mode',            "ENUM('sandbox','live') NOT NULL DEFAULT 'sandbox' AFTER `gateway`"],
+        ];
+    }
+
+    public static function ensureSchema(PDO $pdo): void {
+        try {
+            if (!$pdo->query("SHOW TABLES LIKE 'transactions'")->fetch()) {
+                return; // belum diinstall
+            }
+
+            foreach (self::schemaColumns() as [$table, $column, $definition]) {
+                $exists = $pdo->query("SHOW COLUMNS FROM `{$table}` LIKE '{$column}'")->fetch();
+                if ($exists) {
+                    continue;
+                }
+
+                $pdo->exec("ALTER TABLE `{$table}` ADD COLUMN `{$column}` {$definition}");
+
+                // Transaksi lama: samakan mode dengan environment gateway saat ini
+                if ($table === 'transactions' && $column === 'mode') {
+                    $pdo->exec("UPDATE `transactions` t JOIN `gateway_configs` g ON g.gateway_code = t.gateway
+                                SET t.mode = IF(g.is_production = 1, 'live', 'sandbox')");
+                }
+            }
+        } catch (\Throwable $e) {
+            // Jangan hentikan aplikasi bila user DB tidak punya hak ALTER
+            error_log('[BiruPay] ensureSchema: ' . $e->getMessage());
+        }
     }
 
     public static function isConnected(): bool {
@@ -73,6 +115,8 @@ class Database {
                 $seedSql = file_get_contents($seedFile);
                 $pdo->exec($seedSql);
             }
+
+            self::ensureSchema($pdo);
 
             return ['success' => true, 'message' => 'Migrasi dan inisialisasi database berhasil dijalankan.'];
         } catch (PDOException $e) {

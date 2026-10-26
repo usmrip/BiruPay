@@ -48,6 +48,14 @@ class ApiController extends Controller {
         $gatewayChoice = strtolower(trim((string) $request->input('gateway', '')));
         $itemDetails   = $request->input('item_details', []);
         $itemName      = trim((string) $request->input('item_name', 'Pembayaran Layanan ' . $app['app_name']));
+        $mode = GatewayConfig::normalizeMode($request->input('mode', ''), 'sandbox');
+        if ($mode === null) {
+            $this->json([
+                'status'  => 'error',
+                'message' => "Parameter mode tidak valid. Gunakan 'sandbox' atau 'live'."
+            ], 422);
+            return;
+        }
         $returnUrlCustom  = trim((string) $request->input('return_url', ''));
         $webhookUrlCustom = trim((string) $request->input('webhook_url', ''));
 
@@ -60,7 +68,7 @@ class ApiController extends Controller {
         }
 
         // Check if an order already exists for this app
-        $existing = Transaction::findByOrderIdAndApp($orderId, $app['id']);
+        $existing = Transaction::findByOrderIdAndApp($orderId, $app['id'], $mode);
         if ($existing) {
             // Jika status masih pending, sinkronisasi status ke payment gateway
             if ($existing['status'] === 'pending') {
@@ -75,6 +83,7 @@ class ApiController extends Controller {
                     'code'    => 'ALREADY_PAID',
                     'message' => 'Order ID ini sudah pernah dibayar lunas.',
                     'data'    => [
+                        'mode'           => $existing['mode'] ?? $mode,
                         'order_id'       => $existing['order_id'],
                         'trx_reference'  => $existing['trx_reference'],
                         'amount'         => (float)$existing['amount'],
@@ -100,6 +109,7 @@ class ApiController extends Controller {
                         'order_id'            => $existing['order_id'],
                         'amount'              => (float)$existing['amount'],
                         'gateway'             => $existing['gateway'],
+                        'mode'                => $existing['mode'] ?? $mode,
                         'status'              => 'pending',
                         'snap_token'          => $existing['snap_token'],
                         'gateway_reference'   => $existing['gateway_reference'],
@@ -116,7 +126,7 @@ class ApiController extends Controller {
         $trxRef = Transaction::generateReference($app['app_code']);
 
         // Gateway resolution hierarchy: 1. Request parameter, 2. Platform/Application default, 3. Global system default
-        $appDefaultGw = Application::resolveGateway($app);
+        $appDefaultGw = Application::resolveGateway($app, $mode);
         $selectedGateway = (!empty($gatewayChoice) && in_array($gatewayChoice, ['midtrans', 'duitku', 'doku'])) ? $gatewayChoice : $appDefaultGw;
 
         $trxData = [
@@ -124,6 +134,7 @@ class ApiController extends Controller {
             'order_id'        => $orderId,
             'trx_reference'   => $trxRef,
             'gateway'         => $selectedGateway,
+            'mode'            => $mode,
             'amount'          => $amount,
             'fee'             => 0.00,
             'return_url'      => !empty($returnUrlCustom) ? $returnUrlCustom : null,
@@ -147,6 +158,7 @@ class ApiController extends Controller {
 
         // Pre-initialize gateway token if possible
         $gatewayResponse = null;
+        $gatewayReady = true;
         $params = [
             'trx_reference'   => $trxRef,
             'order_id'        => $orderId,
@@ -161,26 +173,41 @@ class ApiController extends Controller {
         ];
 
         if ($selectedGateway === 'midtrans') {
-            $gw = new MidtransGateway();
+            $gw = new MidtransGateway(GatewayConfig::getByCode('midtrans', $mode));
             if ($gw->isConfigured()) {
                 $gatewayResponse = $gw->createPayment($params);
                 if (!empty($gatewayResponse['snap_token'])) {
                     Transaction::update($trxId, ['snap_token' => $gatewayResponse['snap_token']]);
                 }
+            } else {
+                $gatewayReady = false;
             }
         } elseif ($selectedGateway === 'duitku') {
-            $gw = new DuitkuGateway();
+            $gw = new DuitkuGateway(GatewayConfig::getByCode('duitku', $mode));
             if ($gw->isConfigured()) {
                 $gatewayResponse = $gw->createPayment($params);
                 if (!empty($gatewayResponse['reference'])) {
                     Transaction::update($trxId, ['gateway_reference' => $gatewayResponse['reference']]);
                 }
+            } else {
+                $gatewayReady = false;
             }
         } elseif ($selectedGateway === 'doku') {
-            $gw = new DokuGateway();
+            $gw = new DokuGateway(GatewayConfig::getByCode('doku', $mode));
             if ($gw->isConfigured()) {
                 $gatewayResponse = $gw->createPayment($params);
+            } else {
+                $gatewayReady = false;
             }
+        }
+
+        // Kredensial untuk mode yang diminta belum diisi
+        if (!$gatewayReady) {
+            $errMsg = 'Gateway ' . strtoupper($selectedGateway) . ' belum dikonfigurasi untuk mode ' . $mode . '. Lengkapi kredensial ' . ($mode === 'live' ? 'Live (Production)' : 'Sandbox') . ' di menu Setup Gateway.';
+            Log::error('api', $errMsg, ['gateway' => $selectedGateway, 'mode' => $mode, 'trx_reference' => $trxRef]);
+            Transaction::update($trxId, ['status' => 'failed']);
+            $this->json(['status' => 'error', 'message' => $errMsg], 422);
+            return;
         }
 
         // If the gateway explicitly failed (e.g. gateway server down, bad credentials)
@@ -191,13 +218,13 @@ class ApiController extends Controller {
             $this->json([
                 'status' => 'error',
                 'message' => $errMsg
-            ], 502);
+            ], 422);
             return;
         }
 
         $paymentUrl = View::url('pay?ref=' . urlencode($trxRef));
 
-        Log::info('api', "Payment created for app {$app['app_code']}, Order: {$orderId}, Ref: {$trxRef}");
+        Log::info('api', "Payment created for app {$app['app_code']}, Order: {$orderId}, Ref: {$trxRef}, Mode: {$mode}, Gateway: {$selectedGateway}");
 
         $this->json([
             'status' => 'success',
@@ -207,7 +234,7 @@ class ApiController extends Controller {
                 'order_id'            => $orderId,
                 'amount'              => $amount,
                 'gateway'             => $selectedGateway,
-                'mode'                => $gatewayResponse['mode'] ?? 'sandbox',
+                'mode'                => $mode,
                 'script_url'          => $gatewayResponse['script_url'] ?? '',
                 'payment_url'         => $paymentUrl,
                 'gateway_payment_url' => $gatewayResponse['payment_url'] ?? null,
@@ -226,7 +253,8 @@ class ApiController extends Controller {
             return;
         }
 
-        $trx = Transaction::findByOrderIdAndApp($orderId, $app['id']);
+        $statusMode = GatewayConfig::normalizeMode($request->input('mode', ''), '');
+        $trx = Transaction::findByOrderIdAndApp($orderId, $app['id'], $statusMode ?: null);
         if (!$trx) {
             // Also attempt lookup by hub trx_reference
             $trx = Transaction::findByReference($orderId);
@@ -253,6 +281,7 @@ class ApiController extends Controller {
                 'gateway'          => $trx['gateway'],
                 'payment_method'   => $trx['payment_method'],
                 'amount'           => (float) $trx['amount'],
+                'mode'             => $trx['mode'] ?? 'sandbox',
                 'status'           => $trx['status'],
                 'is_app_notified'  => (bool) $trx['is_app_notified'],
                 'paid_at'          => $trx['paid_at'],
@@ -268,6 +297,8 @@ class ApiController extends Controller {
                 'code' => $g['gateway_code'],
                 'name' => $g['gateway_name'],
                 'mode' => $g['is_production'] ? 'production' : 'sandbox',
+                'live_ready'    => !empty(GatewayConfig::getByCode($g['gateway_code'], 'live')['server_key']),
+                'sandbox_ready' => !empty(GatewayConfig::getByCode($g['gateway_code'], 'sandbox')['server_key']),
             ];
         }, $gateways);
 

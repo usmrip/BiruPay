@@ -40,7 +40,7 @@ class PaymentSyncService {
 
         // 1. MIDTRANS SYNC
         if ($gateway === 'midtrans') {
-            $gwConfig = GatewayConfig::getByCode('midtrans');
+            $gwConfig = GatewayConfig::getByCode('midtrans', $trx['mode'] ?? null);
             if ($gwConfig && !empty($gwConfig['server_key'])) {
                 $serverKey = trim($gwConfig['server_key']);
                 $isProd = !empty($gwConfig['is_production']);
@@ -84,7 +84,7 @@ class PaymentSyncService {
         }
         // 2. DUITKU SYNC
         elseif ($gateway === 'duitku') {
-            $gwConfig = GatewayConfig::getByCode('duitku');
+            $gwConfig = GatewayConfig::getByCode('duitku', $trx['mode'] ?? null);
             if ($gwConfig && !empty($gwConfig['server_key']) && !empty($gwConfig['merchant_id'])) {
                 $merchantCode = trim($gwConfig['merchant_id']);
                 $apiKey = trim($gwConfig['server_key']);

@@ -204,6 +204,11 @@
                 payload.gateway = params.gateway;
             }
 
+            // Optional mode override: 'live' / 'production' or 'sandbox' (default is sandbox)
+            if (params.mode) {
+                payload.mode = params.mode;
+            }
+
             // Create loading UI or call beforeSend
             if (typeof params.onLoading === 'function') {
                 params.onLoading(true);
@@ -297,6 +302,7 @@
                 var customerPhone = config.customerPhone || getVal(['phone', 'telepon', 'hp', 'wa', 'whatsapp', 'no_hp']) || '';
                 var itemName = config.itemName || getVal(['item_name', 'produk', 'layanan', 'paket', 'judul']) || document.title || 'Formulir Pembayaran';
                 var orderId = config.orderId || getVal(['order_id', 'invoice', 'nomor_pesanan']) || ('VIP-' + Date.now());
+                var mode = config.mode || form.getAttribute('data-mode') || getVal(['mode']) || '';
 
                 var submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
                 var originalText = submitBtn ? submitBtn.innerHTML : '';
@@ -306,6 +312,7 @@
                     endpoint:      config.endpoint,
                     orderId:       orderId,
                     amount:        amount,
+                    mode:          mode,
                     customerName:  customerName,
                     customerEmail: customerEmail,
                     customerPhone: customerPhone,

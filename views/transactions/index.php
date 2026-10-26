@@ -95,7 +95,14 @@ use App\Core\View;
                                 <span class="badge bg-light text-dark border"><?= View::escape($trx['app_name'] ?? 'Biru App') ?></span>
                             </td>
                             <td>
-                                <span class="badge bg-secondary-subtle text-secondary font-monospace text-uppercase"><?= View::escape($trx['gateway']) ?></span>
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="badge bg-secondary-subtle text-secondary font-monospace text-uppercase"><?= View::escape($trx['gateway']) ?></span>
+                                    <?php if (($trx['mode'] ?? 'sandbox') === 'live'): ?>
+                                        <span class="badge bg-success-subtle text-success font-monospace" style="font-size: 0.65rem;">LIVE</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-warning-subtle text-warning-emphasis font-monospace" style="font-size: 0.65rem;">SANDBOX</span>
+                                    <?php endif; ?>
+                                </div>
                                 <?php if (!empty($trx['payment_method'])): ?>
                                     <div class="small text-muted" style="font-size: 0.72rem;"><?= View::escape($trx['payment_method']) ?></div>
                                 <?php endif; ?>

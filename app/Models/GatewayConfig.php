@@ -6,9 +6,32 @@ use App\Core\Model;
 class GatewayConfig extends Model {
     protected static string $table = 'gateway_configs';
 
-    public static function getByCode(string $code): ?array {
+    /**
+     * Normalisasi mode dari client. Kosong => $default (sandbox).
+     * Mengembalikan 'live' | 'sandbox', atau null bila nilainya tidak dikenal.
+     */
+    public static function normalizeMode($mode, string $default = 'sandbox'): ?string {
+        $mode = strtolower(trim((string) $mode));
+        if ($mode === '') return $default;
+        if (in_array($mode, ['live', 'production', 'prod'], true)) return 'live';
+        if (in_array($mode, ['sandbox', 'test', 'testing', 'dev'], true)) return 'sandbox';
+        return null;
+    }
+
+    /**
+     * Ambil konfigurasi gateway. Jika $mode diberikan ('live'|'sandbox'), kredensial
+     * yang dipakai adalah kredensial mode tersebut (tanpa fallback ke mode lain),
+     * terlepas dari saklar environment global gateway.
+     */
+    public static function getByCode(string $code, ?string $mode = null): ?array {
         $row = self::findBy('gateway_code', $code);
         if (!$row) return null;
+
+        $mode = $mode !== null ? self::normalizeMode($mode) : null;
+        if ($mode !== null) {
+            $row['is_production'] = $mode === 'live' ? 1 : 0;
+            $row['__strict_mode'] = true;
+        }
 
         return self::formatGatewayRow($row);
     }
@@ -30,9 +53,16 @@ class GatewayConfig extends Model {
 
         $isProd = !empty($row['is_production']);
         $row['mode'] = $isProd ? 'production' : 'sandbox';
+        $strict = !empty($row['__strict_mode']);
+        unset($row['__strict_mode']);
 
-        // Resolve active keys based on current mode
-        if ($isProd) {
+        if ($strict) {
+            // Mode ditentukan client: pakai kredensial mode itu saja
+            $p = $isProd ? 'production_' : 'sandbox_';
+            $row['active_server_key']  = $row[$p . 'server_key']  ?? '';
+            $row['active_client_key']  = $row[$p . 'client_key']  ?? '';
+            $row['active_merchant_id'] = $row[$p . 'merchant_id'] ?? '';
+        } elseif ($isProd) {
             $row['active_server_key']  = !empty($row['production_server_key']) ? $row['production_server_key'] : ($row['server_key'] ?? '');
             $row['active_client_key']  = !empty($row['production_client_key']) ? $row['production_client_key'] : ($row['client_key'] ?? '');
             $row['active_merchant_id'] = !empty($row['production_merchant_id']) ? $row['production_merchant_id'] : ($row['merchant_id'] ?? '');
